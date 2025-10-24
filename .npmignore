@@ -1,0 +1,13 @@
+.git
+.claude
+.cursor
+.github
+.vscode
+node_modules/
+test/
+.env
+.env.*
+.gitignore
+.mocharc.json
+CLAUDE.md
+.DS_Store

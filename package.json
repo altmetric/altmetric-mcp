@@ -1,0 +1,55 @@
+{
+  "name": "altmetric-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Altmetric APIs - track research attention across news, policy, social media, and more",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "altmetric-mcp": "./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/altmetric/altmetric-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/altmetric/altmetric-mcp/issues"
+  },
+  "homepage": "https://github.com/altmetric/altmetric-mcp#readme",
+  "scripts": {
+    "start": "node --env-file=.env index.js",
+    "dev": "node --watch --env-file=.env index.js",
+    "test": "NODE_ENV=test mocha",
+    "test:unit": "NODE_ENV=test mocha",
+    "test:integration": "node --env-file=.env test/integration.test.js"
+  },
+  "keywords": [
+    "mcp",
+    "altmetric",
+    "research-impact",
+    "attention-metrics",
+    "research",
+    "altmetrics",
+    "model-context-protocol"
+  ],
+  "author": "Altmetric",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "identifiers-arxiv": "^0.1.1",
+    "identifiers-bibcode": "^0.1.1",
+    "identifiers-doi": "^0.2.1",
+    "identifiers-handle": "^0.1.1",
+    "identifiers-nct": "^0.1.1",
+    "identifiers-pubmed": "^0.1.1",
+    "identifiers-repec": "^0.1.1",
+    "identifiers-urn": "^0.2.0"
+  },
+  "devDependencies": {
+    "mocha": "^11.7.2",
+    "nock": "^13.5.6",
+    "sinon": "^12.0.1"
+  },
+  "engines": {
+    "node": ">=20.6.0"
+  }
+}

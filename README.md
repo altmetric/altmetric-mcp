@@ -87,7 +87,7 @@ Environment Variables:
 Install directly from the command line:
 
 ```bash
-claude mcp add altmetric-mcp npx -y altmetric-mcp --env ALTMETRIC_DETAILS_API_KEY=your_details_api_key_here --env ALTMETRIC_EXPLORER_API_KEY=your_explorer_api_key_here --env ALTMETRIC_EXPLORER_API_SECRET=your_explorer_api_secret_here
+claude mcp add --transport stdio altmetric-mcp --env ALTMETRIC_DETAILS_API_KEY=your_details_api_key_here --env ALTMETRIC_EXPLORER_API_KEY=your_explorer_api_key_here --env ALTMETRIC_EXPLORER_API_SECRET=your_explorer_api_secret_here -- npx -y altmetric-mcp
 ```
 
 </details>

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.altmetric/altmetric-mcp",
+  "description": "MCP server for Altmetric APIs - track research attention across news, policy, social media, and more",
+  "repository": {
+    "url": "https://github.com/altmetric/altmetric-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "altmetric-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ALTMETRIC_DETAILS_API_KEY",
+          "description": "API key for Altmetric Details Page API. At least one credential set required: either this key OR both Explorer API credentials",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "ALTMETRIC_EXPLORER_API_KEY",
+          "description": "API key for Altmetric Explorer API (requires ALTMETRIC_EXPLORER_API_SECRET). At least one credential set required",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "ALTMETRIC_EXPLORER_API_SECRET",
+          "description": "API secret for Altmetric Explorer API HMAC authentication (requires ALTMETRIC_EXPLORER_API_KEY)",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

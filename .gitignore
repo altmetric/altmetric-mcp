@@ -3,3 +3,6 @@ node_modules/
 .env.local
 .DS_Store
 .github
+
+# MCP Registry CLI tokens
+.mcpregistry_*

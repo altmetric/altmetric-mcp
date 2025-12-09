@@ -9,13 +9,13 @@ import {
 import { createTools } from './lib/tools.js';
 
 // Details Page API configuration
-const DETAILS_API_KEY = process.env.ALTMETRIC_DETAILS_API_KEY || process.env.ALTMETRIC_API_KEY;
-const DETAILS_API_BASE_URL = process.env.ALTMETRIC_DETAILS_API_URL || 'https://api.altmetric.com';
+const DETAILS_API_KEY = process.env.ALTMETRIC_DETAILS_API_KEY;
+const DETAILS_API_BASE_URL = 'https://api.altmetric.com';
 
 // Explorer API configuration
 const EXPLORER_API_KEY = process.env.ALTMETRIC_EXPLORER_API_KEY;
 const EXPLORER_API_SECRET = process.env.ALTMETRIC_EXPLORER_API_SECRET;
-const EXPLORER_API_BASE_URL = process.env.ALTMETRIC_EXPLORER_API_URL || 'https://www.altmetric.com';
+const EXPLORER_API_BASE_URL = 'https://www.altmetric.com';
 
 // Validate required environment variables - at least one API must be configured
 const hasDetailsApi = !!DETAILS_API_KEY;
@@ -24,7 +24,7 @@ const hasExplorerApi = !!(EXPLORER_API_KEY && EXPLORER_API_SECRET);
 if (!hasDetailsApi && !hasExplorerApi) {
   console.error('Error: At least one API configuration is required');
   console.error('Please configure either:');
-  console.error('  1. Details Page API: ALTMETRIC_DETAILS_API_KEY (or ALTMETRIC_API_KEY)');
+  console.error('  1. Details Page API: ALTMETRIC_DETAILS_API_KEY');
   console.error('  2. Explorer API: ALTMETRIC_EXPLORER_API_KEY and ALTMETRIC_EXPLORER_API_SECRET');
   console.error('');
   console.error('Set these in:');

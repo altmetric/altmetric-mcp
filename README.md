@@ -144,6 +144,54 @@ Add to `~/.cursor/mcp.json`:
 
 </details>
 
+<details>
+<summary>Windsurf</summary>
+
+First, enable MCP in Windsurf: **Windsurf Settings → Cascade → Enable "Model Context Protocol (MCP)"**.
+
+Then add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "altmetric": {
+      "command": "npx",
+      "args": ["-y", "altmetric-mcp"],
+      "env": {
+        "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
+        "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
+        "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>Gemini CLI</summary>
+
+Add to `~/.gemini/settings.json` (user-level) or `.gemini/settings.json` (project-level):
+
+```json
+{
+  "mcpServers": {
+    "altmetric": {
+      "command": "npx",
+      "args": ["-y", "altmetric-mcp"],
+      "env": {
+        "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
+        "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
+        "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
+      }
+    }
+  }
+}
+```
+
+</details>
+
 ## API Tiers
 
 ### Details Page API

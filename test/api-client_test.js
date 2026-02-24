@@ -110,7 +110,7 @@ describe('API Client', function () {
 
       await assert.rejects(
         async () => await makeDetailsApiRequest('/v1/doi/invalid', {}, apiKey, baseUrl),
-        /API request failed with status 404/,
+        /Not found: no research output matches that identifier or query/,
         'Error message should include status code'
       );
     });
@@ -168,7 +168,7 @@ describe('API Client', function () {
 
       await assert.rejects(
         async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, baseUrl),
-        /API request failed with status 401/,
+        /Unauthorized: invalid API key/,
         'Error message should include status code'
       );
     });

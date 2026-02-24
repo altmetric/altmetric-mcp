@@ -33,6 +33,47 @@ const toolHandlers = Object.keys(tools).reduce((acc, key) => {
   return acc;
 }, {});
 
+describe('Conditional Tool Registration', function () {
+  const DETAILS_TOOLS = ['get_citation_counts', 'get_citation_details', 'search_citations'];
+  const EXPLORER_TOOLS = [
+    'explore_research_outputs', 'explore_attention_summary', 'explore_mentions',
+    'explore_demographics', 'explore_mention_sources', 'explore_journals',
+  ];
+
+  it('returns all 9 tools when both APIs configured', function () {
+    const allTools = createTools({
+      detailsApiKey: DETAILS_API_KEY,
+      detailsApiBaseUrl: DETAILS_API_BASE_URL,
+      explorerApiKey: EXPLORER_API_KEY,
+      explorerApiSecret: EXPLORER_API_SECRET,
+      explorerApiBaseUrl: EXPLORER_API_BASE_URL,
+    });
+    assert.deepStrictEqual(Object.keys(allTools).sort(), [...DETAILS_TOOLS, ...EXPLORER_TOOLS].sort());
+  });
+
+  it('returns only Details tools when only detailsApiKey provided', function () {
+    const detailsOnly = createTools({
+      detailsApiKey: DETAILS_API_KEY,
+      detailsApiBaseUrl: DETAILS_API_BASE_URL,
+    });
+    assert.deepStrictEqual(Object.keys(detailsOnly).sort(), DETAILS_TOOLS.sort());
+  });
+
+  it('returns only Explorer tools when only Explorer keys provided', function () {
+    const explorerOnly = createTools({
+      explorerApiKey: EXPLORER_API_KEY,
+      explorerApiSecret: EXPLORER_API_SECRET,
+      explorerApiBaseUrl: EXPLORER_API_BASE_URL,
+    });
+    assert.deepStrictEqual(Object.keys(explorerOnly).sort(), EXPLORER_TOOLS.sort());
+  });
+
+  it('returns no tools when no credentials provided', function () {
+    const noTools = createTools({});
+    assert.deepStrictEqual(Object.keys(noTools), []);
+  });
+});
+
 describe('MCP Tools', function () {
   beforeEach(function () {
     fetchStub = sinon.stub(global, 'fetch');
@@ -180,7 +221,7 @@ describe('MCP Tools', function () {
         });
         assert.fail('Should have thrown an error');
       } catch (error) {
-        assert.match(error.message, /403/, 'Error message should include status code');
+        assert.strictEqual(error.message, 'Forbidden: this endpoint requires a commercial/paid API key');
       }
     });
 
@@ -198,7 +239,7 @@ describe('MCP Tools', function () {
         });
         assert.fail('Should have thrown an error');
       } catch (error) {
-        assert.match(error.message, /404/, 'Error message should include status code');
+        assert.strictEqual(error.message, 'Not found: no research output matches that identifier or query');
       }
     });
   });

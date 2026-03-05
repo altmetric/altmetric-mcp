@@ -1,6 +1,7 @@
 .git
 .claude
 .cursor
+.gemini
 .github
 .vscode
 node_modules/
@@ -9,5 +10,7 @@ test/
 .env.*
 .gitignore
 .mocharc.json
+.mcpregistry_*
+AGENTS.md
 CLAUDE.md
 .DS_Store

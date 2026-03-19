@@ -34,13 +34,13 @@ const toolHandlers = Object.keys(tools).reduce((acc, key) => {
 }, {});
 
 describe('Conditional Tool Registration', function () {
-  const DETAILS_TOOLS = ['get_citation_counts', 'get_citation_details', 'search_citations'];
+  const DETAILS_TOOLS = ['get_citation_counts', 'get_citation_details', 'search_citations', 'translate_identifiers'];
   const EXPLORER_TOOLS = [
     'explore_research_outputs', 'explore_attention_summary', 'explore_mentions',
     'explore_demographics', 'explore_mention_sources', 'explore_journals',
   ];
 
-  it('returns all 9 tools when both APIs configured', function () {
+  it('returns all 10 tools when both APIs configured', function () {
     const allTools = createTools({
       detailsApiKey: DETAILS_API_KEY,
       detailsApiBaseUrl: DETAILS_API_BASE_URL,
@@ -241,6 +241,24 @@ describe('MCP Tools', function () {
       } catch (error) {
         assert.strictEqual(error.message, 'Not found: no research output matches that identifier or query');
       }
+    });
+  });
+
+  describe('Translate Identifiers', function () {
+    it('sends POST request with pipe-delimited identifiers', async function () {
+      fetchStub.resolves({
+        ok: true,
+        json: async () => ({ '10.1038/news.2011.490': '241939', '21148220': '241939' }),
+      });
+
+      await toolHandlers.translate_identifiers({
+        identifiers: ['10.1038/news.2011.490', '21148220'],
+      });
+
+      const [url, options] = fetchStub.firstCall.args;
+      assert.strictEqual(options.method, 'POST');
+      assert.strictEqual(options.body, 'ids=10.1038/news.2011.490|21148220');
+      assert.ok(url.includes('/v1/translate'));
     });
   });
 });

@@ -34,13 +34,13 @@ const toolHandlers = Object.keys(tools).reduce((acc, key) => {
 }, {});
 
 describe('Conditional Tool Registration', function () {
-  const DETAILS_TOOLS = ['get_citation_counts', 'get_citation_details', 'search_citations', 'translate_identifiers'];
+  const DETAILS_TOOLS = ['get_citation_counts', 'get_citation_details', 'search_citations', 'get_batch_attention_data', 'translate_identifiers'];
   const EXPLORER_TOOLS = [
     'explore_research_outputs', 'explore_attention_summary', 'explore_mentions',
     'explore_demographics', 'explore_mention_sources', 'explore_journals',
   ];
 
-  it('returns all 10 tools when both APIs configured', function () {
+  it('returns all 11 tools when both APIs configured', function () {
     const allTools = createTools({
       detailsApiKey: DETAILS_API_KEY,
       detailsApiBaseUrl: DETAILS_API_BASE_URL,

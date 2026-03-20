@@ -36,14 +36,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "identifiers-arxiv": "^0.1.1",
-    "identifiers-bibcode": "^0.1.1",
-    "identifiers-doi": "^0.2.1",
-    "identifiers-handle": "^0.1.1",
-    "identifiers-nct": "^0.1.1",
-    "identifiers-pubmed": "^0.1.1",
-    "identifiers-repec": "^0.1.1",
-    "identifiers-urn": "^0.2.0"
+    "@altmetric/identifiers": "^1.0.0"
   },
   "devDependencies": {
     "mocha": "^11.7.2",

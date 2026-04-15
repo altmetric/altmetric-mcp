@@ -4,22 +4,38 @@ Model Context Protocol (MCP) server that enables AI agents to access Altmetric A
 
 Altmetric monitors where research is being discussed beyond traditional academic citations - from mainstream media coverage to policy citations, patent references, and social media engagement - providing a comprehensive view of real-world research impact.
 
+## Prerequisites
+
+- **Node.js >= 20.6.0** - [Download from nodejs.org](https://nodejs.org/) (LTS recommended)
+- **Altmetric API credentials** (at least one):
+  - **Details Page API key** - Free tier or commercial access
+  - **Explorer API key + secret** - Institutional access
+
+Don't have keys yet? [Request API access](https://www.altmetric.com/solutions/altmetric-api/)
+
+## Quick Install (Claude Desktop on macOS)
+
+Run the guided installer in Terminal - it checks Node.js, prompts for your API keys, and configures Claude Desktop automatically:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/altmetric/altmetric-mcp/main/install.sh)
+```
+
+Or if you've cloned the repo:
+
+```bash
+bash install.sh
+```
+
+Prefer to set things up manually? See [Claude Desktop](#claude-desktop) below.
+
 ## Installation
 
-### Prerequisites
-- Node.js >= 18.0.0
-- Altmetric API credentials:
-  - **Details Page API**: Free tier or commercial access - [Request API access](https://www.altmetric.com/solutions/altmetric-api/)
-  - **Explorer API**: Institutional access - [Request API access](https://www.altmetric.com/solutions/altmetric-api/)
-
-**Note:** At least one API configuration (Details Page or Explorer) is required.
-
-### Getting Started
-
-Configure your MCP client (check its own docs) to run the Altmetric MCP server using `npx`:
+Configure your MCP client to run the Altmetric MCP server using `npx`. Include only the API credentials you have access to.
 
 ```json
 {
+  "type": "stdio",
   "command": "npx",
   "args": ["-y", "altmetric-mcp"],
   "env": {
@@ -30,20 +46,68 @@ Configure your MCP client (check its own docs) to run the Altmetric MCP server u
 }
 ```
 
-**Tips:**
-- Include only the API credentials you have access to
-
 Below are specific instructions for popular AI tools and editors.
 
+### Claude Desktop
+
+1. Open the configuration file at:
+   - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+   On macOS you can open it from Terminal:
+   ```bash
+   mkdir -p ~/Library/Application\ Support/Claude && open -a TextEdit ~/Library/Application\ Support/Claude/claude_desktop_config.json
+   ```
+
+2. Add the Altmetric MCP server. If the file is empty, paste this (replacing the placeholder keys with your own, and removing any you don't have):
+
+   ```json
+   {
+     "mcpServers": {
+       "Altmetric": {
+         "type": "stdio",
+         "command": "npx",
+         "args": ["-y", "altmetric-mcp"],
+         "env": {
+           "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
+           "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
+           "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
+         }
+       }
+     }
+   }
+   ```
+
+   If the file already has content, add `"Altmetric": { ... }` inside the existing `"mcpServers"` block, separated by a comma from the other entries.
+
+3. Save the file and **restart Claude Desktop** (Cmd+Q then reopen).
+
+4. Verify by asking Claude: *"Use the Altmetric tools to look up the attention score for DOI 10.1038/nature12373"*
+
 <details>
-<summary>GitHub Copilot for VS Code</summary>
+<summary><strong>Claude Code</strong></summary>
+
+Install directly from the command line:
+
+```bash
+claude mcp add --transport stdio altmetric-mcp \
+  --env ALTMETRIC_DETAILS_API_KEY=your_details_api_key_here \
+  --env ALTMETRIC_EXPLORER_API_KEY=your_explorer_api_key_here \
+  --env ALTMETRIC_EXPLORER_API_SECRET=your_explorer_api_secret_here \
+  -- npx -y altmetric-mcp
+```
+
+</details>
+
+<details>
+<summary><strong>VS Code (GitHub Copilot)</strong></summary>
 
 Add to your project `.vscode/mcp.json`:
 
 ```json
 {
   "servers": {
-    "altmetric-mcp": {
+    "Altmetric": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "altmetric-mcp"],
@@ -62,74 +126,15 @@ Reload VS Code to apply the changes. [More information](https://code.visualstudi
 </details>
 
 <details>
-<summary>GitHub Copilot CLI</summary>
-
-Write `/mcp add`:
-
-name: altmetric-mcp
-Server type: local
-Command: npx -y altmetric-mcp
-Environment Variables:
-
-```json
-{
-  "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
-  "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
-  "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
-}
-```
-
-</details>
-
-<details>
-<summary>Claude Code</summary>
-
-Install directly from the command line:
-
-```bash
-claude mcp add --transport stdio altmetric-mcp --env ALTMETRIC_DETAILS_API_KEY=your_details_api_key_here --env ALTMETRIC_EXPLORER_API_KEY=your_explorer_api_key_here --env ALTMETRIC_EXPLORER_API_SECRET=your_explorer_api_secret_here -- npx -y altmetric-mcp
-```
-
-</details>
-
-<details>
-<summary>Claude Desktop</summary>
-
-Open your Claude Desktop configuration file:
-
-- **macOS:** `~/Library/Application\ Support/Claude/claude_desktop_config.json`
-
-Add the Altmetric MCP server configuration:
-
-```json
-{
-  "mcpServers": {
-    "altmetric-mcp": {
-      "command": "npx",
-      "args": ["-y", "altmetric-mcp"],
-      "env": {
-        "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
-        "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
-        "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
-      }
-    }
-  }
-}
-```
-
-Restart Claude Desktop after saving the configuration.
-
-</details>
-
-<details>
-<summary>Cursor</summary>
+<summary><strong>Cursor</strong></summary>
 
 Add to `~/.cursor/mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "altmetric": {
+    "Altmetric": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "altmetric-mcp"],
       "env": {
@@ -145,52 +150,22 @@ Add to `~/.cursor/mcp.json`:
 </details>
 
 <details>
-<summary>Windsurf</summary>
+<summary><strong>Other MCP clients</strong></summary>
 
-First, enable MCP in Windsurf: **Windsurf Settings → Cascade → Enable "Model Context Protocol (MCP)"**.
-
-Then add to `~/.codeium/windsurf/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "altmetric": {
-      "command": "npx",
-      "args": ["-y", "altmetric-mcp"],
-      "env": {
-        "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
-        "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
-        "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
-      }
-    }
-  }
-}
-```
+Any MCP-compatible client that supports stdio transport can use this server. Use the generic configuration at the top of this section, adapting it to your client's config format. The command is always `npx` with args `["-y", "altmetric-mcp"]` plus the environment variables for your API keys.
 
 </details>
 
-<details>
-<summary>Gemini CLI</summary>
+## Troubleshooting
 
-Add to `~/.gemini/settings.json` (user-level) or `.gemini/settings.json` (project-level):
-
-```json
-{
-  "mcpServers": {
-    "altmetric": {
-      "command": "npx",
-      "args": ["-y", "altmetric-mcp"],
-      "env": {
-        "ALTMETRIC_DETAILS_API_KEY": "your_details_api_key_here",
-        "ALTMETRIC_EXPLORER_API_KEY": "your_explorer_api_key_here",
-        "ALTMETRIC_EXPLORER_API_SECRET": "your_explorer_api_secret_here"
-      }
-    }
-  }
-}
-```
-
-</details>
+| Problem | Solution |
+|---|---|
+| `command not found: node` | Node.js is not installed. [Download it here](https://nodejs.org/) (version 20.6.0 or later). |
+| Claude Desktop won't start after editing config | The JSON file has a syntax error. Check for missing commas, unmatched brackets, or trailing commas. Paste it into [jsonlint.com](https://jsonlint.com) to validate. |
+| "MCP server failed to start" | Run `npx -y altmetric-mcp` in Terminal to see the actual error. Usually a missing/invalid API key or Node.js version too old. |
+| Tools appear but return 403 errors | You're using a free-tier key with a commercial-tier tool (`get_citation_details`). Use `get_citation_counts` or `search_citations` instead. |
+| First query is slow | Normal. `npx` downloads the package on first run. Subsequent uses are faster. |
+| Explorer tools fail | Explorer tools need **both** `ALTMETRIC_EXPLORER_API_KEY` and `ALTMETRIC_EXPLORER_API_SECRET`. Make sure both are set. |
 
 ## API Tiers
 
@@ -206,123 +181,23 @@ If you attempt to use `get_citation_details` with a free API key, you'll receive
 - Organizations with data integrations can also access their own institutional research outputs in isolation
 - Includes advanced filtering by author, department, journal, and custom organizational metadata
 
-## Features
+## Tools
 
-This MCP server provides nine tools for accessing Altmetric data across two APIs:
+This server provides nine tools across two APIs:
 
-### Details Page API Tools
+| Tool | API | Tier | Description |
+|---|---|---|---|
+| `get_citation_counts` | Details Page | Free | Attention metrics by identifier (DOI, PubMed ID, etc.) |
+| `get_citation_details` | Details Page | Commercial | Full mention text, author details, metadata |
+| `search_citations` | Details Page | Free | Search attention data across all outputs by timeframe |
+| `explore_research_outputs` | Explorer | Institutional | Search and filter research outputs |
+| `explore_attention_summary` | Explorer | Institutional | Aggregated attention metrics by source and date |
+| `explore_mentions` | Explorer | Institutional | Individual mention details with filtering |
+| `explore_demographics` | Explorer | Institutional | Audience geographic and demographic data |
+| `explore_mention_sources` | Explorer | Institutional | Source/outlet analysis for mentions |
+| `explore_journals` | Explorer | Institutional | Journal metrics, rankings, and search |
 
-#### 1. `get_citation_counts` (Free Tier)
-Retrieve attention metrics and mention counts across various platforms for research outputs using DOI, PubMed ID, arXiv ID, or other identifiers.
-
-**Parameters:**
-- `identifier` (required): The research output identifier (e.g., "10.1038/nature12373")
-- `identifier_type` (optional): Type of identifier - "doi", "pmid", "arxiv", "id", "ads", "urn", "uri", or "isbn" (default: "doi")
-
-**Example:**
-```json
-{
-  "identifier": "10.1038/nature12373",
-  "identifier_type": "doi"
-}
-```
-
-#### 2. `get_citation_details` (Commercial Tier)
-Retrieve detailed mention information including full text of posts, author details, and complete metadata for how research is being discussed online.
-
-**Parameters:**
-- `identifier` (required): The research output identifier
-- `identifier_type` (optional): "doi" or "id" (default: "doi")
-- `citation_type` (optional): Filter by type - "twitter", "news", "blog", "policy", "patent", etc.
-- `page` (optional): Page number for pagination (default: 1)
-
-**Example:**
-```json
-{
-  "identifier": "10.1038/nature12373",
-  "identifier_type": "doi",
-  "citation_type": "news"
-}
-```
-
-#### 3. `search_citations` (Free Tier)
-Search aggregated attention data across all tracked research outputs for a specific timeframe.
-
-**Parameters:**
-- `timeframe` (required): "1d", "2d", "3d", "4d", "5d", "6d", "1w", "1m", "3m", "6m", "1y", or "at" (all-time)
-- `citation_type` (optional): Filter by citation source type
-- `nlmid` (optional): Filter by journal NLM ID
-- `issns` (optional): Filter by journal ISSN(s), comma-separated
-- `subject` (optional): Filter by Scopus subject area
-- `num_results` (optional): Number of results to return
-- `page` (optional): Page number for pagination
-
-**Example:**
-```json
-{
-  "timeframe": "1w",
-  "citation_type": "news",
-  "num_results": 50
-}
-```
-
-### Explorer API Tools (Institutional)
-
-#### 4. `explore_research_outputs`
-Search and filter research outputs within your institutional Altmetric Explorer instance. Supports filtering by author, department, journal, publication date, research type, and more.
-
-**Key Parameters:**
-- `q`: Search query for title, author, or journal
-- `scope`: "all" or "institution"
-- `type`: Filter by research output type (e.g., ["article", "dataset"])
-- `timeframe`: Filter by attention timeframe
-- `page_number`, `page_size`: Pagination controls
-
-#### 5. `explore_attention_summary`
-Get aggregated attention metrics for research outputs matching your query, broken down by source (news, Twitter, policy documents, etc.) and date.
-
-**Key Parameters:**
-- `q`: Search query
-- `timeframe`: Attention timeframe
-- `type`: Filter by research output type
-
-#### 6. `explore_mentions`
-Retrieve individual mentions of research outputs with detailed information about each mention including author, URL, timestamp, and platform.
-
-**Key Parameters:**
-- `q`: Search query
-- `mentioned_after`/`mentioned_before`: Date range filters
-- `countries`: Filter by country codes
-- `page_number`, `page_size`: Pagination controls
-
-#### 7. `explore_demographics`
-Get demographic information about the audiences engaging with research outputs. Analyze geographic distribution, demographic patterns, and audience characteristics.
-
-**Key Parameters:**
-- `q`: Search query
-- `scope`: "all" or "institution"
-- `timeframe`: Attention timeframe
-- `type`, `journal_id`, `author_id`: Filter by research attributes
-
-#### 8. `explore_mention_sources`
-Get information about the sources of mentions for research outputs. Analyze which platforms, channels, and outlets are mentioning research with source credibility and reach data.
-
-**Key Parameters:**
-- `q`: Search query
-- `mentioned_after`/`mentioned_before`: Date range filters
-- `source_type`: Filter by source type (news, twitter, policy, etc.)
-- `countries`: Filter by country codes
-- `page_number`, `page_size`: Pagination controls
-
-#### 9. `explore_journals`
-Get journal-related data and metrics. Search and filter by publication venue, analyze journal impact, and retrieve journal rankings.
-
-**Key Parameters:**
-- `q`: Search query for journal name or ISSN
-- `journal_id`, `issn`: Filter by journal identifiers
-- `subject`: Filter by subject area
-- `publisher`: Filter by publisher name
-- `page_number`, `page_size`: Pagination controls
+For detailed parameters and examples, see [TOOLS.md](TOOLS.md).
 
 ## API Documentation
 

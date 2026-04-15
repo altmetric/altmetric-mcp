@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="46 46 408 408">
+  <defs>
+    <mask id="m0" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="296.67" cy="203.33" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m1" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="316.00" cy="250.00" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m2" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="296.67" cy="296.67" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m3" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="250.00" cy="316.00" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m4" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="203.33" cy="296.67" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m5" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="184.00" cy="250.00" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m6" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="203.33" cy="203.33" r="143.5" fill="black"/>
+    </mask>
+    <mask id="m7" color-interpolation="linearRGB">
+      <circle cx="250" cy="250" r="200.5" fill="white"/>
+      <circle cx="250" cy="250" r="108.5" fill="black"/>
+      <circle cx="250.00" cy="184.00" r="143.5" fill="black"/>
+    </mask>
+  </defs>
+  <circle cx="250.00" cy="184.00" r="143.6" fill="#5C2482" mask="url(#m0)"/>
+  <circle cx="296.67" cy="203.33" r="143.6" fill="#A61680" mask="url(#m1)"/>
+  <circle cx="316.00" cy="250.00" r="143.6" fill="#E3032E" mask="url(#m2)"/>
+  <circle cx="296.67" cy="296.67" r="143.6" fill="#F29100" mask="url(#m3)"/>
+  <circle cx="250.00" cy="316.00" r="143.6" fill="#FFDC00" mask="url(#m4)"/>
+  <circle cx="203.33" cy="296.67" r="143.6" fill="#A1C517" mask="url(#m5)"/>
+  <circle cx="184.00" cy="250.00" r="143.6" fill="#04BAEE" mask="url(#m6)"/>
+  <circle cx="203.33" cy="203.33" r="143.6" fill="#005CA8" mask="url(#m7)"/>
+</svg>

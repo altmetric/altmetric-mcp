@@ -7,6 +7,13 @@
     "source": "github"
   },
   "version": "0.5.1",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/altmetric/altmetric-mcp/main/icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    }
+  ],
   "packages": [
     {
       "registryType": "npm",

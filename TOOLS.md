@@ -117,8 +117,3 @@ Get journal-related data and metrics. Search and filter by publication venue, an
 - `subject`: Filter by subject area
 - `publisher`: Filter by publisher name
 - `page_number`, `page_size`: Pagination controls
-
-## API Documentation
-
-- **Details Page API:** https://details-page-api-docs.altmetric.com/
-- **Explorer API:** https://explorer-api-docs.altmetric.com/

@@ -156,5 +156,5 @@ Tools will fail at runtime if their required API credentials are not configured 
 
 ## API Documentation
 
-- **Details Page API**: https://details-page-api-docs.altmetric.com/
-- **Explorer API**: https://explorer-api-docs.altmetric.com/
+- **Details Page API**: https://docs.altmetric.com/details-page-api/
+- **Explorer API**: https://docs.altmetric.com/explorer-api/

@@ -264,4 +264,54 @@ describe('API Client', function () {
       assert.strictEqual(fetchStub.callCount, 0, 'must not issue an http request');
     });
   });
+
+  describe('stderr scrubbing', function () {
+    const apiKey = 'test_api_key';
+    const apiSecret = 'test_explorer_secret_key_12345';
+    let consoleErrorStub;
+
+    beforeEach(function () {
+      consoleErrorStub = sinon.stub(console, 'error');
+    });
+
+    afterEach(function () {
+      consoleErrorStub.restore();
+    });
+
+    it('does not log raw upstream error body for Details API', async function () {
+      const sentinel = 'sk_live_FAKE_LEAKED_TOKEN_xyz';
+      fetchStub.resolves({
+        ok: false,
+        status: 500,
+        text: async () => `internal error: token=${sentinel} host=10.0.0.5`,
+      });
+
+      await assert.rejects(
+        async () => await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com'),
+      );
+
+      const allLogs = consoleErrorStub.getCalls().map(c => c.args.join(' ')).join('\n');
+      assert.ok(!allLogs.includes(sentinel), 'leaked sentinel string must not appear in stderr');
+      assert.ok(!allLogs.includes('10.0.0.5'), 'internal IP must not appear in stderr');
+      assert.match(allLogs, /body_sha256_prefix=[a-f0-9]{16}/, 'must log a body hash prefix');
+      assert.match(allLogs, /status=500/, 'must log the status');
+    });
+
+    it('does not log raw upstream error body for Explorer API', async function () {
+      const sentinel = 'sk_live_EXPLORER_FAKE_TOKEN_xyz';
+      fetchStub.resolves({
+        ok: false,
+        status: 502,
+        text: async () => `backend error: ${sentinel}`,
+      });
+
+      await assert.rejects(
+        async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, 'https://www.altmetric.com'),
+      );
+
+      const allLogs = consoleErrorStub.getCalls().map(c => c.args.join(' ')).join('\n');
+      assert.ok(!allLogs.includes(sentinel), 'leaked sentinel string must not appear in stderr');
+      assert.match(allLogs, /body_sha256_prefix=[a-f0-9]{16}/, 'must log a body hash prefix');
+    });
+  });
 });

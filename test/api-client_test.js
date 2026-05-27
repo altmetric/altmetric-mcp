@@ -216,4 +216,52 @@ describe('API Client', function () {
     });
 
   });
+
+  describe('outbound HTTP hardening', function () {
+    const apiKey = 'test_api_key';
+    const apiSecret = 'test_explorer_secret_key_12345';
+
+    it('passes an AbortSignal to fetch (Details API)', async function () {
+      fetchStub.resolves({ ok: true, json: async () => ({}) });
+      await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com');
+      const [, options] = fetchStub.firstCall.args;
+      assert.ok(options.signal, 'fetch must be invoked with a signal');
+      assert.ok(typeof options.signal.aborted === 'boolean', 'signal must be an AbortSignal');
+    });
+
+    it('passes an AbortSignal to fetch (Explorer API)', async function () {
+      fetchStub.resolves({ ok: true, json: async () => ({}) });
+      await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, 'https://www.altmetric.com');
+      const [, options] = fetchStub.firstCall.args;
+      assert.ok(options.signal, 'fetch must be invoked with a signal');
+    });
+
+    it('does not pass redirect: "error" so Altmetric POST 307s can be followed', async function () {
+      // Altmetric routes POSTs via Cloudflare with a 307 redirect to a
+      // different subdomain; refusing redirects breaks translate_identifiers
+      // and get_batch_attention_data. URL pinning is still enforced by the
+      // hardcoded base URL plus TLS verification of the responding host.
+      fetchStub.resolves({ ok: true, json: async () => ({}) });
+      await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com');
+      const [, options] = fetchStub.firstCall.args;
+      assert.notStrictEqual(options.redirect, 'error',
+        'must allow upstream redirects so /v1/translate-style 307s work');
+    });
+
+    it('rejects non-https baseUrl (Details API)', async function () {
+      await assert.rejects(
+        async () => await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'http://api.altmetric.com'),
+        /Only https URLs are permitted/
+      );
+      assert.strictEqual(fetchStub.callCount, 0, 'must not issue an http request');
+    });
+
+    it('rejects non-https baseUrl (Explorer API)', async function () {
+      await assert.rejects(
+        async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, 'http://www.altmetric.com'),
+        /Only https URLs are permitted/
+      );
+      assert.strictEqual(fetchStub.callCount, 0, 'must not issue an http request');
+    });
+  });
 });

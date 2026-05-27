@@ -156,6 +156,30 @@ Any MCP-compatible client that supports stdio transport can use this server. Use
 
 </details>
 
+## Deploying safely
+
+This server runs as a child process of the MCP host (Claude Desktop, Claude Code, etc.). A few things are worth knowing before you wire it into a sensitive workflow.
+
+**What the server does**
+- Read-only proxy to two Altmetric HTTP APIs over outbound HTTPS.
+- No inbound network surface; no destructive operations.
+- Treats upstream text as untrusted: scans for prompt-injection markers, redacts suspicious matches in the LLM-facing summary, and surfaces raw values only via `structuredContent`.
+
+**What you should do**
+- **Set API keys via your MCP host's `env` block**, not via a committed `.env` file. Keys appear in URL query strings; treat them as bearer-equivalent credentials.
+- **Run with reduced privileges if your host allows it.** The server only needs outbound HTTPS to `api.altmetric.com` and `www.altmetric.com`. If your host or container runtime supports it, deny filesystem writes outside `$TMPDIR` and deny other network egress.
+- **Consider an egress allowlist (forward proxy / DLP).** If you're using the server inside an environment that processes sensitive data, route outbound traffic through a proxy that only allows the two Altmetric hosts. The server doesn't need to talk to anyone else.
+- **Respect your data-classification zone.** This server forwards tool arguments verbatim to a third party. If your prompt contains restricted or regulated data, it leaves your boundary.
+
+**What's enforced for you**
+- Outbound URLs are asserted to use `https:`.
+- Upstream responses are capped at 20 MB and 60 s.
+- Inbound tool arguments are capped at 8 MB total / 64 KB per string.
+- Filter values are validated client-side (date format, length, pagination ranges) before any upstream call.
+- Upstream error bodies are logged to stderr by SHA-256 prefix only, not verbatim.
+
+For vulnerability reports and supported versions see [SECURITY.md](SECURITY.md).
+
 ## Troubleshooting
 
 | Problem | Solution |

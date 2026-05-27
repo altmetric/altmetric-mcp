@@ -1,6 +1,6 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import { generateExplorerDigest, makeDetailsApiRequest, makeExplorerApiRequest } from '../lib/api-client.js';
+import { generateExplorerDigest, makeDetailsApiRequest, makeExplorerApiRequest, MAX_RESPONSE_BYTES } from '../lib/api-client.js';
 
 describe('API Client', function () {
   let fetchStub;
@@ -118,7 +118,7 @@ describe('API Client', function () {
     it('skips undefined and null parameters', async function () {
       fetchStub.resolves({
         ok: true,
-        json: async () => ({ test: 'data' }),
+        text: async () => JSON.stringify({ test: 'data' }),
       });
 
       await makeDetailsApiRequest('/v1/doi/test', {
@@ -176,7 +176,7 @@ describe('API Client', function () {
     it('skips undefined and null filter values', async function () {
       fetchStub.resolves({
         ok: true,
-        json: async () => ({ data: [] }),
+        text: async () => JSON.stringify({ data: [] }),
       });
 
       await makeExplorerApiRequest('/explorer/api/research_outputs', {
@@ -195,7 +195,7 @@ describe('API Client', function () {
     it('always generates digest even with empty filters', async function () {
       fetchStub.resolves({
         ok: true,
-        json: async () => ({ data: [] }),
+        text: async () => JSON.stringify({ data: [] }),
       });
 
       // With filters
@@ -206,7 +206,7 @@ describe('API Client', function () {
       fetchStub.resetHistory();
       fetchStub.resolves({
         ok: true,
-        json: async () => ({ data: [] }),
+        text: async () => JSON.stringify({ data: [] }),
       });
 
       // Without filters
@@ -222,7 +222,7 @@ describe('API Client', function () {
     const apiSecret = 'test_explorer_secret_key_12345';
 
     it('passes an AbortSignal to fetch (Details API)', async function () {
-      fetchStub.resolves({ ok: true, json: async () => ({}) });
+      fetchStub.resolves({ ok: true, text: async () => '{}' });
       await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com');
       const [, options] = fetchStub.firstCall.args;
       assert.ok(options.signal, 'fetch must be invoked with a signal');
@@ -230,7 +230,7 @@ describe('API Client', function () {
     });
 
     it('passes an AbortSignal to fetch (Explorer API)', async function () {
-      fetchStub.resolves({ ok: true, json: async () => ({}) });
+      fetchStub.resolves({ ok: true, text: async () => '{}' });
       await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, 'https://www.altmetric.com');
       const [, options] = fetchStub.firstCall.args;
       assert.ok(options.signal, 'fetch must be invoked with a signal');
@@ -241,7 +241,7 @@ describe('API Client', function () {
       // different subdomain; refusing redirects breaks translate_identifiers
       // and get_batch_attention_data. URL pinning is still enforced by the
       // hardcoded base URL plus TLS verification of the responding host.
-      fetchStub.resolves({ ok: true, json: async () => ({}) });
+      fetchStub.resolves({ ok: true, text: async () => '{}' });
       await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com');
       const [, options] = fetchStub.firstCall.args;
       assert.notStrictEqual(options.redirect, 'error',
@@ -262,6 +262,67 @@ describe('API Client', function () {
         /Only https URLs are permitted/
       );
       assert.strictEqual(fetchStub.callCount, 0, 'must not issue an http request');
+    });
+  });
+
+  describe('response size cap', function () {
+    const apiKey = 'test_api_key';
+    const apiSecret = 'test_explorer_secret_key_12345';
+
+    function mockHeaders(headers = {}) {
+      return { get: (k) => headers[k.toLowerCase()] ?? null };
+    }
+
+    it('rejects when Content-Length header exceeds the cap (Details API)', async function () {
+      fetchStub.resolves({
+        ok: true,
+        headers: mockHeaders({ 'content-length': String(MAX_RESPONSE_BYTES + 1) }),
+        text: async () => { throw new Error('text() should not be called when content-length already exceeds cap'); },
+      });
+
+      await assert.rejects(
+        async () => await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com'),
+        /Upstream response too large/
+      );
+    });
+
+    it('rejects when actual body length exceeds the cap (Details API)', async function () {
+      // Upstream lies about (or omits) Content-Length but the body is oversized.
+      fetchStub.resolves({
+        ok: true,
+        headers: mockHeaders(),
+        text: async () => 'x'.repeat(MAX_RESPONSE_BYTES + 1),
+      });
+
+      await assert.rejects(
+        async () => await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com'),
+        /Upstream response too large/
+      );
+    });
+
+    it('rejects oversized Explorer responses', async function () {
+      fetchStub.resolves({
+        ok: true,
+        headers: mockHeaders(),
+        text: async () => 'x'.repeat(MAX_RESPONSE_BYTES + 1),
+      });
+
+      await assert.rejects(
+        async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, 'https://www.altmetric.com'),
+        /Upstream response too large/
+      );
+    });
+
+    it('accepts responses at or below the cap', async function () {
+      const payload = JSON.stringify({ ok: true, padding: 'x'.repeat(1024) });
+      fetchStub.resolves({
+        ok: true,
+        headers: mockHeaders({ 'content-length': String(payload.length) }),
+        text: async () => payload,
+      });
+
+      const result = await makeDetailsApiRequest('/v1/doi/test', {}, apiKey, 'https://api.altmetric.com');
+      assert.strictEqual(result.ok, true);
     });
   });
 

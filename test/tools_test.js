@@ -92,7 +92,7 @@ describe('MCP Tools', function () {
 
       fetchStub.resolves({
         ok: true,
-        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
       });
 
       await toolHandlers.search_citations({
@@ -113,7 +113,7 @@ describe('MCP Tools', function () {
 
       fetchStub.resolves({
         ok: true,
-        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
       });
 
       await toolHandlers.explore_research_outputs({
@@ -133,7 +133,7 @@ describe('MCP Tools', function () {
 
       fetchStub.resolves({
         ok: true,
-        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
       });
 
       await toolHandlers.explore_research_outputs({
@@ -153,7 +153,7 @@ describe('MCP Tools', function () {
 
       fetchStub.resolves({
         ok: true,
-        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
       });
 
       await toolHandlers.explore_research_outputs({
@@ -173,7 +173,7 @@ describe('MCP Tools', function () {
 
       fetchStub.resolves({
         ok: true,
-        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
       });
 
       await toolHandlers.explore_research_outputs({
@@ -193,7 +193,7 @@ describe('MCP Tools', function () {
 
       fetchStub.resolves({
         ok: true,
-        json: async () => mockResponse,
+        text: async () => JSON.stringify(mockResponse),
       });
 
       await toolHandlers.explore_research_outputs({
@@ -248,7 +248,7 @@ describe('MCP Tools', function () {
     it('sends POST request with pipe-delimited identifiers', async function () {
       fetchStub.resolves({
         ok: true,
-        json: async () => ({ '10.1038/news.2011.490': '241939', '21148220': '241939' }),
+        text: async () => JSON.stringify({ '10.1038/news.2011.490': '241939', '21148220': '241939' }),
       });
 
       await toolHandlers.translate_identifiers({

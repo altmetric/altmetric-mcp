@@ -1,22 +1,32 @@
 #!/usr/bin/env node
 
 /**
- * Integration test for the MCP server
- * Tests full end-to-end flow: server startup, MCP protocol, and real API calls
+ * Integration test for the MCP server.
+ * Tests the full end-to-end flow: server startup, MCP protocol, real API calls,
+ * and the assertions that matter (structuredContent shape + UNTRUSTED_MARKER
+ * in the human-readable summary).
+ *
  * Run with: npm run test:integration
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { spawn } from 'child_process';
+import assert from 'assert';
 
-async function testMCPServer() {
-  console.log('Starting MCP server test...\n');
+const UNTRUSTED_MARKER_FRAGMENT = 'untrusted text from the Altmetric API';
 
-  const serverProcess = spawn('node', ['--env-file=.env', 'index.js'], {
-    cwd: process.cwd(),
-    env: process.env,
-  });
+function summaryOf(result) {
+  // Returns the natural-language summary that gets shown to the LLM.
+  return result?.content?.[0]?.text ?? '';
+}
+
+function structuredOf(result) {
+  // Returns the structured payload alongside the summary.
+  return result?.structuredContent;
+}
+
+async function run() {
+  console.log('Starting MCP server integration test…\n');
 
   const transport = new StdioClientTransport({
     command: 'node',
@@ -24,156 +34,195 @@ async function testMCPServer() {
   });
 
   const client = new Client(
-    {
-      name: 'test-client',
-      version: '0.1.0',
-    },
-    {
-      capabilities: {},
-    }
+    { name: 'integration-test-client', version: '0.1.0' },
+    { capabilities: {} },
   );
 
   try {
     await client.connect(transport);
     console.log('✓ Connected to MCP server\n');
 
-    console.log('Test 1: Listing available tools...');
-    const tools = await client.listTools();
-    console.log(`✓ Found ${tools.tools.length} tools:`);
-    tools.tools.forEach(tool => {
-      console.log(`  - ${tool.name}: ${tool.description.substring(0, 60)}...`);
-    });
-    console.log();
+    // ---- 1. listTools -------------------------------------------------
+    const { tools } = await client.listTools();
+    assert.strictEqual(tools.length, 11, `expected 11 tools, got ${tools.length}`);
+    console.log(`✓ listTools returned ${tools.length} tools\n`);
 
-    // Details Page API Tests
-    console.log('Test 2: get_citation_counts with DOI 10.1089/g4h.2020.0180...');
-    const countsResult = await client.callTool({
-      name: 'get_citation_counts',
-      arguments: {
-        identifier: '10.1089/g4h.2020.0180',
-        identifier_type: 'doi',
-      },
-    });
-    const countsData = JSON.parse(countsResult.content[0].text);
-    console.log(`✓ Success! Altmetric ID: ${countsData.altmetric_id}, Score: ${countsData.score}`);
-    console.log(`  Title: ${countsData.title.substring(0, 60)}...`);
-    console.log();
+    // ---- 2. get_citation_counts (DOI) --------------------------------
+    {
+      const r = await client.callTool({
+        name: 'get_citation_counts',
+        arguments: { identifier: '10.1089/g4h.2020.0180', identifier_type: 'doi' },
+      });
+      const data = structuredOf(r);
+      assert.ok(data, 'structuredContent must be present');
+      assert.ok(data.altmetric_id, 'structuredContent.altmetric_id must be set');
+      assert.ok(data.title, 'structuredContent.title must be set');
+      assert.ok(
+        summaryOf(r).includes(UNTRUSTED_MARKER_FRAGMENT),
+        'summary text must carry the UNTRUSTED_MARKER',
+      );
+      console.log(`✓ get_citation_counts(DOI): id=${data.altmetric_id} score=${data.score}`);
+    }
 
-    console.log('Test 3: get_citation_counts with Altmetric ID 105587727...');
-    const idResult = await client.callTool({
-      name: 'get_citation_counts',
-      arguments: {
-        identifier: '105587727',
-        identifier_type: 'id',
-      },
-    });
-    const idData = JSON.parse(idResult.content[0].text);
-    console.log(`✓ Success! DOI: ${idData.doi}, Score: ${idData.score}`);
-    console.log();
+    // ---- 3. get_citation_counts (Altmetric ID) -----------------------
+    {
+      const r = await client.callTool({
+        name: 'get_citation_counts',
+        arguments: { identifier: '105587727', identifier_type: 'id' },
+      });
+      const data = structuredOf(r);
+      assert.ok(data?.doi, 'structuredContent.doi must be set');
+      console.log(`✓ get_citation_counts(id): doi=${data.doi}`);
+    }
 
-    console.log('Test 4: get_citation_details with DOI 10.1002/pan3.10240...');
-    const detailsResult = await client.callTool({
-      name: 'get_citation_details',
-      arguments: {
-        identifier: '10.1002/pan3.10240',
-        identifier_type: 'doi',
-      },
-    });
-    const detailsData = JSON.parse(detailsResult.content[0].text);
-    console.log(`✓ Success! Retrieved ${detailsData.posts ? detailsData.posts.length : 0} posts`);
-    console.log();
+    // ---- 4. get_citation_details (commercial; may 403 on free tier) --
+    {
+      const r = await client.callTool({
+        name: 'get_citation_details',
+        arguments: { identifier: '10.1002/pan3.10240', identifier_type: 'doi' },
+      });
+      if (r.isError) {
+        console.log(`⚠ get_citation_details returned isError: ${summaryOf(r).slice(0, 80)}`);
+      } else {
+        const data = structuredOf(r);
+        assert.ok(data, 'structuredContent must be present on success');
+        assert.ok(
+          summaryOf(r).includes(UNTRUSTED_MARKER_FRAGMENT),
+          'summary text must carry the UNTRUSTED_MARKER',
+        );
+        const postCount = data.posts?.length ?? 0;
+        console.log(`✓ get_citation_details: ${postCount} posts in structuredContent`);
+      }
+    }
 
-    console.log('Test 5: search_citations for last week...');
-    const searchResult = await client.callTool({
-      name: 'search_citations',
-      arguments: {
-        timeframe: '1w',
-        num_results: 5,
-      },
-    });
-    const searchData = JSON.parse(searchResult.content[0].text);
-    console.log(`✓ Success! Found ${searchData.results ? searchData.results.length : 0} results`);
-    console.log();
+    // ---- 5. search_citations -----------------------------------------
+    {
+      const r = await client.callTool({
+        name: 'search_citations',
+        arguments: { timeframe: '1w', num_results: 5 },
+      });
+      const data = structuredOf(r);
+      const count = data?.results?.length ?? 0;
+      console.log(`✓ search_citations(1w): ${count} results`);
+    }
 
-    // Explorer API Tests
-    console.log('Test 6: explore_research_outputs...');
-    const exploreResult = await client.callTool({
-      name: 'explore_research_outputs',
-      arguments: {
-        page_size: 1,
-      },
-    });
-    const exploreData = JSON.parse(exploreResult.content[0].text);
-    console.log(`✓ Success! Returned ${exploreData.data?.length || 0} research outputs`);
-    console.log();
+    // ---- 6. translate_identifiers (was uncovered before) -------------
+    {
+      const r = await client.callTool({
+        name: 'translate_identifiers',
+        arguments: { identifiers: ['10.1038/news.2011.490', '21148220'] },
+      });
+      assert.ok(!r.isError, `translate_identifiers must succeed: ${summaryOf(r)}`);
+      const data = structuredOf(r);
+      assert.ok(data, 'structuredContent must be present');
+      console.log(`✓ translate_identifiers: ${Object.keys(data).length} translations`);
+    }
 
-    console.log('Test 7: explore_attention_summary...');
-    const attentionResult = await client.callTool({
-      name: 'explore_attention_summary',
-      arguments: {
-        timeframe: '1d',
-      },
-    });
-    const attentionData = JSON.parse(attentionResult.content[0].text);
-    console.log(`✓ Success! Retrieved attention data`);
-    console.log();
+    // ---- 7. get_batch_attention_data (was uncovered before) ----------
+    {
+      const r = await client.callTool({
+        name: 'get_batch_attention_data',
+        arguments: {
+          dois: ['10.1089/g4h.2020.0180', '10.1002/pan3.10240'],
+          sort_by: 'score',
+        },
+      });
+      assert.ok(!r.isError, `get_batch_attention_data must succeed: ${summaryOf(r)}`);
+      const data = structuredOf(r);
+      assert.ok(data, 'structuredContent must be present');
+      assert.ok(
+        summaryOf(r).includes(UNTRUSTED_MARKER_FRAGMENT),
+        'summary text must carry the UNTRUSTED_MARKER',
+      );
+      console.log(`✓ get_batch_attention_data: queried=${data.total_queried} found=${data.found}`);
+    }
 
-    console.log('Test 8: explore_mentions...');
-    const mentionsResult = await client.callTool({
-      name: 'explore_mentions',
-      arguments: {
-        timeframe: '1d',
-        page_size: 1,
-      },
-    });
-    const mentionsData = JSON.parse(mentionsResult.content[0].text);
-    console.log(`✓ Success! Returned ${mentionsData.data?.length || 0} mentions`);
-    console.log();
+    // ---- 8. explore_research_outputs ---------------------------------
+    {
+      const r = await client.callTool({
+        name: 'explore_research_outputs',
+        arguments: { page_size: 1 },
+      });
+      assert.ok(structuredOf(r), 'structuredContent must be present');
+      const data = structuredOf(r);
+      console.log(`✓ explore_research_outputs: ${data?.data?.length ?? 0} outputs`);
+    }
 
-    console.log('Test 9: explore_demographics...');
-    const demoResult = await client.callTool({
-      name: 'explore_demographics',
-      arguments: {
-        timeframe: '1d',
-      },
-    });
-    const demoData = JSON.parse(demoResult.content[0].text);
-    console.log(`✓ Success! Retrieved demographic data`);
-    console.log();
+    // ---- 9. explore_attention_summary --------------------------------
+    {
+      const r = await client.callTool({
+        name: 'explore_attention_summary',
+        arguments: { timeframe: '1d' },
+      });
+      assert.ok(structuredOf(r), 'structuredContent must be present');
+      console.log('✓ explore_attention_summary');
+    }
 
-    console.log('Test 10: explore_mention_sources...');
-    const sourcesResult = await client.callTool({
-      name: 'explore_mention_sources',
-      arguments: {
-        timeframe: '1d',
-        page_size: 1,
-      },
-    });
-    const sourcesData = JSON.parse(sourcesResult.content[0].text);
-    console.log(`✓ Success! Returned ${sourcesData.data?.length || 0} sources`);
-    console.log();
+    // ---- 10. explore_mentions ----------------------------------------
+    {
+      const r = await client.callTool({
+        name: 'explore_mentions',
+        arguments: { timeframe: '1d', page_size: 1 },
+      });
+      assert.ok(structuredOf(r), 'structuredContent must be present');
+      const data = structuredOf(r);
+      console.log(`✓ explore_mentions: ${data?.data?.length ?? 0} mentions`);
+    }
 
-    console.log('Test 11: explore_journals...');
-    const journalsResult = await client.callTool({
-      name: 'explore_journals',
-      arguments: {
-        journal_id: ['4f6fa4c93cf058f610000043'],
-      },
-    });
-    const journalsData = JSON.parse(journalsResult.content[0].text);
-    console.log(`✓ Success! Returned ${journalsData.data?.length || 0} journals`);
-    console.log();
+    // ---- 11. explore_demographics ------------------------------------
+    {
+      const r = await client.callTool({
+        name: 'explore_demographics',
+        arguments: { timeframe: '1d' },
+      });
+      assert.ok(structuredOf(r), 'structuredContent must be present');
+      console.log('✓ explore_demographics');
+    }
 
-    console.log('✓ All API tests completed!\n');
+    // ---- 12. explore_mention_sources ---------------------------------
+    {
+      const r = await client.callTool({
+        name: 'explore_mention_sources',
+        arguments: { timeframe: '1d', page_size: 1 },
+      });
+      assert.ok(structuredOf(r), 'structuredContent must be present');
+      const data = structuredOf(r);
+      console.log(`✓ explore_mention_sources: ${data?.data?.length ?? 0} sources`);
+    }
 
+    // ---- 13. explore_journals ----------------------------------------
+    {
+      const r = await client.callTool({
+        name: 'explore_journals',
+        arguments: { journal_id: ['4f6fa4c93cf058f610000043'] },
+      });
+      assert.ok(structuredOf(r), 'structuredContent must be present');
+      const data = structuredOf(r);
+      console.log(`✓ explore_journals: ${data?.data?.length ?? 0} journals`);
+    }
+
+    // ---- 14. Filter validation rejects bad inputs (no upstream call) -
+    {
+      const r = await client.callTool({
+        name: 'explore_research_outputs',
+        arguments: { published_after: '2024-13-45' },
+      });
+      assert.ok(r.isError, 'invalid date must produce an isError result');
+      assert.ok(
+        summaryOf(r).includes('Invalid published_after'),
+        'error message must mention the invalid field',
+      );
+      console.log('✓ filter validation rejects bad date before upstream call');
+    }
+
+    console.log('\n✓ All integration tests passed.\n');
   } catch (error) {
-    console.error('✗ Test failed:', error.message);
-    process.exit(1);
+    console.error('\n✗ Integration test failed:', error.message);
+    if (error.stack) console.error(error.stack);
+    process.exitCode = 1;
   } finally {
-    // Clean up
     await client.close();
-    serverProcess.kill();
   }
 }
 
-testMCPServer();
+run();

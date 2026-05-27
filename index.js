@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createTools } from './lib/tools.js';
+import { assertArgsWithinLimits } from './lib/args-limits.js';
 
 // Details Page API configuration
 const DETAILS_API_KEY = process.env.ALTMETRIC_DETAILS_API_KEY;
@@ -74,6 +75,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   try {
+    assertArgsWithinLimits(args);
     return await tool.handler(args);
   } catch (error) {
     // Log full error for debugging

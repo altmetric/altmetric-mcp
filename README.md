@@ -161,7 +161,7 @@ Any MCP-compatible client that supports stdio transport can use this server. Use
 This server runs as a child process of the MCP host (Claude Desktop, Claude Code, etc.). A few things are worth knowing before you wire it into a sensitive workflow.
 
 **What the server does**
-- Read-only proxy to two Altmetric HTTP APIs over outbound HTTPS.
+- Read-only proxy to two Altmetric HTTP APIs over outbound HTTPS. The one exception is an idempotent `POST` to the Explorer identifier_lists endpoint (create-or-find), used internally to scope an Explorer query to a supplied set of identifiers; it creates no user-visible state and is not destructive.
 - No inbound network surface; no destructive operations.
 - Treats upstream text as untrusted: scans for prompt-injection markers, redacts suspicious matches in the LLM-facing summary, and surfaces raw values only via `structuredContent`.
 
@@ -207,19 +207,23 @@ If you attempt to use `get_citation_details` with a free API key, you'll receive
 
 ## Tools
 
-This server provides nine tools across two APIs:
+This server provides eleven tools across two APIs:
 
 | Tool | API | Tier | Description |
 |---|---|---|---|
 | `get_citation_counts` | Details Page | Free | Attention metrics by identifier (DOI, PubMed ID, etc.) |
-| `get_citation_details` | Details Page | Commercial | Full mention text, author details, metadata |
+| `get_citation_details` | Details Page | Commercial | Full mention text, author details (incl. Dimensions Researcher IDs), metadata |
 | `search_citations` | Details Page | Free | Search attention data across all outputs by timeframe |
+| `get_batch_attention_data` | Details Page | Commercial | Attention metrics for many DOIs at once, ranked |
+| `translate_identifiers` | Details Page | Commercial | Translate identifiers (DOI, PMID, etc.) to Altmetric IDs |
 | `explore_research_outputs` | Explorer | Institutional | Search and filter research outputs |
 | `explore_attention_summary` | Explorer | Institutional | Aggregated attention metrics by source and date |
 | `explore_mentions` | Explorer | Institutional | Individual mention details with filtering |
 | `explore_demographics` | Explorer | Institutional | Audience geographic and demographic data |
 | `explore_mention_sources` | Explorer | Institutional | Source/outlet analysis for mentions |
 | `explore_journals` | Explorer | Institutional | Journal metrics, rankings, and search |
+
+All Explorer tools additionally accept `researcher_id` and `grant_id` filters (Dimensions IDs), and an `identifiers` parameter that scopes a query to a raw list of scholarly identifiers - the server builds the corresponding identifier list for you. Explorer responses also include sentiment data (`sentiment-analysis-totals` on research outputs, `sentiment-analysis` on X/Bluesky mentions).
 
 For detailed parameters and examples, see [TOOLS.md](TOOLS.md).
 

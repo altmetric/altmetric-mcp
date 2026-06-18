@@ -204,6 +204,86 @@ describe('MCP Tools', function () {
       assert.deepStrictEqual(url.searchParams.getAll('filter[type][]'), ['article', 'dataset'],
         'array params should be formatted as filter[key][]');
     });
+
+    it('routes researcher_id to filter[researcher_id][] (explore_journals)', async function () {
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
+
+      await toolHandlers.explore_journals({ researcher_id: ['ur.015071462574.28'] });
+
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.deepStrictEqual(url.searchParams.getAll('filter[researcher_id][]'), ['ur.015071462574.28']);
+    });
+
+    it('routes grant_id to filter[grant_id][] (explore_demographics)', async function () {
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
+
+      await toolHandlers.explore_demographics({ grant_id: ['grant.13864430'] });
+
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.deepStrictEqual(url.searchParams.getAll('filter[grant_id][]'), ['grant.13864430']);
+    });
+  });
+
+  describe('Internal identifier list (identifiers param)', function () {
+    it('creates a list, scopes the read to its id, and surfaces recognized counts', async function () {
+      fetchStub.onFirstCall().resolves({
+        ok: true,
+        text: async () => JSON.stringify({ data: { id: 'list-123', counts: { dois: 2, altmetric_ids: 1 } } }),
+      });
+      fetchStub.onSecondCall().resolves({
+        ok: true,
+        text: async () => JSON.stringify({ meta: { response: { 'total-results': 3, 'total-pages': 1 } }, data: [] }),
+      });
+
+      const result = await toolHandlers.explore_research_outputs({
+        identifiers: ['10.3133/pp1348', 'altmetric:101427008', '10.1007/bf01734359'],
+      });
+
+      // First call POSTs the raw identifiers (newline-joined) to identifier_lists
+      const [, postOptions] = fetchStub.firstCall.args;
+      assert.strictEqual(postOptions.method, 'POST');
+      const postBody = new URLSearchParams(postOptions.body);
+      assert.strictEqual(postBody.get('identifiers'), '10.3133/pp1348\naltmetric:101427008\n10.1007/bf01734359');
+
+      // Second call is the read, scoped to the returned list id - and the raw
+      // identifiers must not leak into the read query.
+      const readUrl = new URL(fetchStub.secondCall.args[0]);
+      assert.strictEqual(readUrl.searchParams.get('filter[identifier_list_id]'), 'list-123');
+      assert.strictEqual(readUrl.searchParams.has('filter[identifiers][]'), false);
+
+      const text = result.content[0].text;
+      assert.ok(text.includes('Identifier list list-123'));
+      assert.ok(text.includes('2 dois'));
+      assert.ok(text.includes('1 altmetric_ids'));
+    });
+
+    it('rejects passing both identifiers and identifier_list_id', async function () {
+      await assert.rejects(
+        async () => await toolHandlers.explore_mentions({
+          identifiers: ['10.3133/pp1348'],
+          identifier_list_id: 'abc',
+        }),
+        /Pass either identifiers or identifier_list_id/,
+      );
+      assert.strictEqual(fetchStub.callCount, 0, 'must not issue any request');
+    });
+
+    it('rejects an empty identifiers array', async function () {
+      await assert.rejects(
+        async () => await toolHandlers.explore_journals({ identifiers: [] }),
+        /identifiers must be a non-empty array/,
+      );
+      assert.strictEqual(fetchStub.callCount, 0);
+    });
+
+    it('rejects more than 25,000 identifiers', async function () {
+      const tooMany = new Array(25001).fill('10.1/x');
+      await assert.rejects(
+        async () => await toolHandlers.explore_journals({ identifiers: tooMany }),
+        /Maximum 25000 identifiers/,
+      );
+      assert.strictEqual(fetchStub.callCount, 0);
+    });
   });
 
   describe('Error Handling Business Logic', function () {

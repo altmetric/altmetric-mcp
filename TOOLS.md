@@ -1,6 +1,6 @@
 # Altmetric MCP - Tools Reference
 
-This MCP server provides nine tools for accessing Altmetric data across two APIs. Your AI agent discovers these tools and their parameters automatically via the MCP protocol - this document is for human reference.
+This MCP server provides tools for accessing Altmetric data across two APIs. Your AI agent discovers these tools and their parameters automatically via the MCP protocol - this document is for human reference.
 
 ## Details Page API Tools
 
@@ -20,7 +20,7 @@ Retrieve attention metrics and mention counts across various platforms for resea
 ```
 
 ### `get_citation_details` (Commercial Tier)
-Retrieve detailed mention information including full text of posts, author details, and complete metadata for how research is being discussed online.
+Retrieve detailed mention information including full text of posts, author details, and complete metadata for how research is being discussed online. The returned `citation` block includes `authors_details`, pairing each author name with its Dimensions Researcher ID where available.
 
 **Parameters:**
 - `identifier` (required): The research output identifier
@@ -62,8 +62,15 @@ Search aggregated attention data across all tracked research outputs for a speci
 
 All Explorer tools require institutional credentials (both `ALTMETRIC_EXPLORER_API_KEY` and `ALTMETRIC_EXPLORER_API_SECRET`).
 
+All six Explorer tools share a common set of filters. In addition to the per-tool parameters below, every Explorer tool accepts:
+
+- `researcher_id`: Filter by Dimensions Researcher ID(s), e.g. `["ur.015071462574.28"]`
+- `grant_id`: Filter by Dimensions grant ID(s), e.g. `["grant.13864430"]`
+- `identifier_list_id`: Scope the query to an existing identifier list (created in the Explorer UI or via the Identifier Lists API)
+- `identifiers`: Scope the query to a raw list of scholarly identifiers (DOI, Handle, ISBN, URI, URN, PubMed ID, arXiv ID, ADS Bibcode, RePEc ID, NCT ID, Altmetric ID). The server creates (or finds) an identifier list from these and applies it automatically, so you don't need to obtain an `identifier_list_id` first. Prefix Altmetric IDs with `altmetric:` to disambiguate them from PubMed IDs. Up to 25,000 identifiers; mutually exclusive with `identifier_list_id`.
+
 ### `explore_research_outputs`
-Search and filter research outputs within your institutional Altmetric Explorer instance. Supports filtering by author, department, journal, publication date, research type, and more.
+Search and filter research outputs within your institutional Altmetric Explorer instance. Supports filtering by author, department, journal, publication date, research type, and more. Each result includes `sentiment-analysis-totals`, a breakdown of its mentions across seven sentiment categories (computed for X and Bluesky mentions; absent if your organization has AI features restricted).
 
 **Key Parameters:**
 - `q`: Search query for title, author, or journal
@@ -81,7 +88,7 @@ Get aggregated attention metrics for research outputs matching your query, broke
 - `type`: Filter by research output type
 
 ### `explore_mentions`
-Retrieve individual mentions of research outputs with detailed information about each mention including author, URL, timestamp, and platform.
+Retrieve individual mentions of research outputs with detailed information about each mention including author, URL, timestamp, and platform. Scored mentions also carry a `sentiment-analysis` attribute (one sentiment per research output the mention references; computed for X and Bluesky only, absent if your organization has AI features restricted).
 
 **Key Parameters:**
 - `q`: Search query

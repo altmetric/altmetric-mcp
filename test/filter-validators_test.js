@@ -26,6 +26,8 @@ describe('validateFilterValue', function () {
     it('accepts typical arrays', function () {
       assert.doesNotThrow(() => validateFilterValue('type', ['article', 'dataset']));
       assert.doesNotThrow(() => validateFilterValue('countries', ['US', 'GB', 'IT']));
+      assert.doesNotThrow(() => validateFilterValue('researcher_id', ['ur.015071462574.28']));
+      assert.doesNotThrow(() => validateFilterValue('grant_id', ['grant.13864430']));
     });
 
     it('accepts typical pagination', function () {
@@ -105,6 +107,14 @@ describe('validateFilterValue', function () {
     it('rejects non-arrays for array keys', function () {
       assert.throws(
         () => validateFilterValue('type', 'article'),
+        /expected an array/
+      );
+      assert.throws(
+        () => validateFilterValue('researcher_id', 'ur.015071462574.28'),
+        /expected an array/
+      );
+      assert.throws(
+        () => validateFilterValue('grant_id', 'grant.13864430'),
         /expected an array/
       );
     });

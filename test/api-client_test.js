@@ -1,6 +1,14 @@
 import assert from 'assert';
 import sinon from 'sinon';
-import { generateExplorerDigest, makeDetailsApiRequest, makeExplorerApiRequest, MAX_RESPONSE_BYTES } from '../lib/api-client.js';
+import crypto from 'crypto';
+import {
+  generateExplorerDigest,
+  generateIdentifierListDigest,
+  makeDetailsApiRequest,
+  makeExplorerApiRequest,
+  makeExplorerIdentifierListRequest,
+  MAX_RESPONSE_BYTES,
+} from '../lib/api-client.js';
 
 describe('API Client', function () {
   let fetchStub;
@@ -215,6 +223,97 @@ describe('API Client', function () {
       assert(url.searchParams.has('digest'), 'Should include digest even when no filters');
     });
 
+  });
+
+  describe('generateIdentifierListDigest', function () {
+    const secret = 'this-is-a-valid-secret-key';
+    const identifiers = '10.1038/nplants.2015.3\naltmetric:12345';
+
+    it('HMAC-SHA1s the raw identifiers string with the hyphen-stripped secret', function () {
+      const expected = crypto
+        .createHmac('sha1', secret.replace(/-/g, ''))
+        .update(identifiers)
+        .digest('hex');
+      assert.strictEqual(generateIdentifierListDigest(identifiers, secret), expected);
+    });
+
+    it('strips hyphens from the secret (hyphenated and de-hyphenated secrets match)', function () {
+      assert.strictEqual(
+        generateIdentifierListDigest(identifiers, 'abc-def-ghij-klmno-pqrs'),
+        generateIdentifierListDigest(identifiers, 'abcdefghijklmnopqrs'),
+      );
+    });
+
+    it('differs from the raw-secret HMAC (proves hyphens are stripped)', function () {
+      const withHyphens = crypto.createHmac('sha1', secret).update(identifiers).digest('hex');
+      assert.notStrictEqual(generateIdentifierListDigest(identifiers, secret), withHyphens);
+    });
+
+    it('does not collide with the standard Explorer digest convention', function () {
+      assert.notStrictEqual(
+        generateIdentifierListDigest(identifiers, secret),
+        generateExplorerDigest({ q: identifiers }, secret),
+      );
+    });
+
+    it('validates secret is at least 16 characters', function () {
+      assert.throws(
+        () => generateIdentifierListDigest(identifiers, 'short'),
+        /ALTMETRIC_EXPLORER_API_SECRET must be at least 16 characters/,
+      );
+    });
+  });
+
+  describe('makeExplorerIdentifierListRequest', function () {
+    const apiKey = 'test_explorer_key';
+    const apiSecret = 'test_explorer_secret_key_12345';
+    const baseUrl = 'https://www.altmetric.com';
+    const identifiers = '10.1038/nplants.2015.3\naltmetric:12345';
+
+    it('validates API key exists', async function () {
+      await assert.rejects(
+        async () => await makeExplorerIdentifierListRequest(identifiers, null, apiSecret, baseUrl),
+        /ALTMETRIC_EXPLORER_API_KEY is required/,
+      );
+    });
+
+    it('POSTs a form-encoded body and signs the raw identifiers string', async function () {
+      fetchStub.resolves({
+        ok: true,
+        text: async () => JSON.stringify({ data: { id: 'abc', counts: { dois: 1, altmetric_ids: 1 } } }),
+      });
+
+      await makeExplorerIdentifierListRequest(identifiers, apiKey, apiSecret, baseUrl);
+
+      const [calledUrl, options] = fetchStub.firstCall.args;
+      const url = new URL(calledUrl);
+      assert.strictEqual(url.pathname, '/explorer/api/identifier_lists');
+      assert.strictEqual(url.searchParams.has('identifiers'), false, 'identifiers must not be in the query string');
+      assert.strictEqual(options.method, 'POST');
+      assert.strictEqual(options.headers['Content-Type'], 'application/x-www-form-urlencoded');
+      assert.ok(options.signal, 'must pass an AbortSignal');
+
+      const body = new URLSearchParams(options.body);
+      assert.strictEqual(body.get('key'), apiKey);
+      assert.strictEqual(body.get('identifiers'), identifiers, 'newline-separated identifiers survive the body round-trip');
+      assert.strictEqual(body.get('digest'), generateIdentifierListDigest(identifiers, apiSecret));
+    });
+
+    it('throws error with status code on API failure', async function () {
+      fetchStub.resolves({ ok: false, status: 401, text: async () => 'Unauthorized' });
+      await assert.rejects(
+        async () => await makeExplorerIdentifierListRequest(identifiers, apiKey, apiSecret, baseUrl),
+        /Unauthorized: invalid API key/,
+      );
+    });
+
+    it('rejects non-https baseUrl', async function () {
+      await assert.rejects(
+        async () => await makeExplorerIdentifierListRequest(identifiers, apiKey, apiSecret, 'http://www.altmetric.com'),
+        /Only https URLs are permitted/,
+      );
+      assert.strictEqual(fetchStub.callCount, 0, 'must not issue an http request');
+    });
   });
 
   describe('outbound HTTP hardening', function () {

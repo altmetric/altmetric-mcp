@@ -21,14 +21,21 @@ The server integrates two different Altmetric APIs:
 
 To release a new version:
 
-1. **Update version numbers in 3 places:**
-   - `package.json` - `version` field
-   - `server.json` - `version` field (line 9)
-   - `server.json` - `packages[0].version` field (line 21)
+1. **Bump the version.** Edit it in `package.json` and `server.json` (which has
+   it twice - top-level `version` and `packages[0].version`), then sync the
+   lockfile:
+   ```bash
+   npm install --package-lock-only
+   ```
+   This rewrites `package-lock.json`'s two `version` fields from `package.json`
+   automatically - **do not hand-edit the lockfile.** All four version fields
+   must match or `publish.sh` aborts the release; forgetting `package-lock.json`
+   is an easy, recurring miss, which is exactly why the check (and this step)
+   exist.
 
 2. **Commit the version bump:**
    ```bash
-   git add package.json server.json
+   git add package.json server.json package-lock.json
    git commit -m "Bump version to X.Y.Z"
    ```
 
@@ -158,6 +165,8 @@ Tools will fail at runtime if their required API credentials are not configured 
 **Response fields (passthrough):** new upstream fields surface automatically via `structuredContent` with no client changes - `authors_details` (name + Dimensions Researcher ID) on the Details `get_citation_details` citation block, and Explorer sentiment data (`sentiment-analysis-totals` on research outputs, `sentiment-analysis` on X/Bluesky mentions). Tool descriptions advertise these for discoverability.
 
 **Security Notes:**
+- **This is a public, open-source repository (`altmetric/altmetric-mcp`).** Nothing sensitive may ever be committed: no real API keys or secrets, no internal hostnames or staging/sandbox URLs, no Jira/ticket IDs, no customer or institutional data, and no internal-only process detail. Use placeholder or published-example values only (the values in the public API docs are safe). Review every diff with this in mind before committing or pushing.
+- **No references to internal or private repos.** No commit SHAs, branch names, internal class/method names, or internal file paths from other Altmetric repos - in source, comments, commit messages, or test data. Describe public behaviour (e.g. "the Explorer API verifies the digest with the secret's dashes removed"), never how an internal service implements it. Internal rationale that needs those references belongs in the internal tracking doc, not here.
 - API credentials must never be committed to repositories (Details Page API key, Explorer API key/secret)
 - HMAC digest ensures requests cannot be forged without the secret
 - Digest is generated from filter parameters only (excludes `key`, `digest`, `order`, `page[number]`, `page[size]`)

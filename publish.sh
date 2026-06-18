@@ -41,19 +41,27 @@ fi
 
 echo "✅ Branch check passed: on main and synced with remote"
 
-# Check that package.json and server.json versions match
+# Check that package.json, server.json, and package-lock.json versions all match.
+# package-lock.json is an easy, recurring miss because bumping package.json does
+# not update it - so it is checked here to fail the release loudly rather than
+# ship a lockfile that lags the published version.
 echo "🔍 Checking version consistency..."
 PKG_VERSION=$(node -e "console.log(require('./package.json').version)")
 SERVER_VERSION=$(node -e "console.log(require('./server.json').version)")
 SERVER_PKG_VERSION=$(node -e "console.log(require('./server.json').packages[0].version)")
+LOCK_VERSION=$(node -e "console.log(require('./package-lock.json').version)")
+LOCK_PKG_VERSION=$(node -e "console.log(require('./package-lock.json').packages[''].version)")
 
-if [[ "$PKG_VERSION" != "$SERVER_VERSION" ]] || [[ "$PKG_VERSION" != "$SERVER_PKG_VERSION" ]]; then
+if [[ "$PKG_VERSION" != "$SERVER_VERSION" ]] || [[ "$PKG_VERSION" != "$SERVER_PKG_VERSION" ]] || [[ "$PKG_VERSION" != "$LOCK_VERSION" ]] || [[ "$PKG_VERSION" != "$LOCK_PKG_VERSION" ]]; then
   echo "❌ Error: Version mismatch!"
-  echo "  package.json:              $PKG_VERSION"
-  echo "  server.json:               $SERVER_VERSION"
-  echo "  server.json packages[0]:   $SERVER_PKG_VERSION"
+  echo "  package.json:               $PKG_VERSION"
+  echo "  server.json:                $SERVER_VERSION"
+  echo "  server.json packages[0]:    $SERVER_PKG_VERSION"
+  echo "  package-lock.json:          $LOCK_VERSION"
+  echo "  package-lock packages[\"\"]:  $LOCK_PKG_VERSION"
   echo ""
   echo "Please update versions to match before publishing."
+  echo "Tip: after bumping package.json, run 'npm install --package-lock-only' to sync package-lock.json."
   exit 1
 fi
 

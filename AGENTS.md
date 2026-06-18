@@ -164,6 +164,12 @@ Tools will fail at runtime if their required API credentials are not configured 
 
 **Response fields (passthrough):** new upstream fields surface automatically via `structuredContent` with no client changes - `authors_details` (name + Dimensions Researcher ID) on the Details `get_citation_details` citation block, and Explorer sentiment data (`sentiment-analysis-totals` on research outputs, `sentiment-analysis` on X/Bluesky mentions). Tool descriptions advertise these for discoverability.
 
+**Published docs (https://docs.altmetric.com/mcp/):** `README.md` and `TOOLS.md` are republished verbatim as the two pages of the public docs site (index + tools reference) using string-matched transforms, so small edits can silently break those pages. When editing either file:
+- Keep the `README.md` top heading exactly `# Altmetric MCP Server` and the `TOOLS.md` top heading exactly `# Altmetric MCP - Tools Reference` - they are matched literally and retitled on the site.
+- Keep the literal `[TOOLS.md](TOOLS.md)` link in `README.md`; it is rewritten to the site's tools page. Other links and images must use absolute URLs - only these two files exist on the site, so relative links to other repo files (e.g. `SECURITY.md`, `install.sh`) or repo-only anchors will 404 there.
+- The README's `## API Documentation` section is dropped on the site; don't put anything site-critical in it.
+- Changes reach the site only on its next rebuild (a push here does not trigger one), and changing any of the matched strings above needs a coordinated change on the docs-site side - flag it with the docs maintainers.
+
 **Security Notes:**
 - **This is a public, open-source repository (`altmetric/altmetric-mcp`).** Nothing sensitive may ever be committed: no real API keys or secrets, no internal hostnames or staging/sandbox URLs, no Jira/ticket IDs, no customer or institutional data, and no internal-only process detail. Use placeholder or published-example values only (the values in the public API docs are safe). Review every diff with this in mind before committing or pushing.
 - **No references to internal or private repos.** No commit SHAs, branch names, internal class/method names, or internal file paths from other Altmetric repos - in source, comments, commit messages, or test data. Describe public behaviour (e.g. "the Explorer API verifies the digest with the secret's dashes removed"), never how an internal service implements it. Internal rationale that needs those references belongs in the internal tracking doc, not here.

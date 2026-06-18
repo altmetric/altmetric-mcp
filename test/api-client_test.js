@@ -51,6 +51,18 @@ describe('API Client', function () {
       assert.strictEqual(digest1, digest2, 'Different page sizes should produce same digest');
     });
 
+    it('strips dashes from the secret before signing (Explorer verifies with dashes removed)', function () {
+      const uuidSecret = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+      const dashFree = uuidSecret.replace(/-/g, '');
+      const filters = { q: 'climate' };
+      // Explorer signs with the dash-stripped secret; the MCP must produce the same digest.
+      const expected = crypto.createHmac('sha1', dashFree).update('q|climate').digest('hex');
+
+      assert.strictEqual(generateExplorerDigest(filters, uuidSecret), expected);
+      // A UUID secret and its dash-free form must sign identically.
+      assert.strictEqual(generateExplorerDigest(filters, uuidSecret), generateExplorerDigest(filters, dashFree));
+    });
+
     it('sorts filter keys alphabetically before generating digest', function () {
       const filters1 = { q: 'test', scope: 'all', timeframe: '1w' };
       const filters2 = { timeframe: '1w', q: 'test', scope: 'all' }; // different order
@@ -178,6 +190,39 @@ describe('API Client', function () {
         async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, baseUrl),
         /Unauthorized: invalid API key/,
         'Error message should include status code'
+      );
+    });
+
+    it('surfaces a structured JSON:API error (title/detail/code) instead of a bare status', async function () {
+      fetchStub.resolves({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({
+          meta: { response: { status: 'error' } },
+          errors: [{ status: '400', code: 'no_api_access', title: 'API access not allowed', detail: 'Your organisation does not have API access' }],
+        }),
+      });
+
+      await assert.rejects(
+        async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, baseUrl),
+        /API access not allowed: Your organisation does not have API access \(no_api_access\) \[HTTP 400\]/,
+      );
+    });
+
+    it('falls back to the generic message and does not leak a non-structured error body', async function () {
+      fetchStub.resolves({
+        ok: false,
+        status: 500,
+        text: async () => 'internal-host-10.0.0.5 leaked-key=supersecret',
+      });
+
+      await assert.rejects(
+        async () => await makeExplorerApiRequest('/explorer/api/research_outputs', { q: 'test' }, apiKey, apiSecret, baseUrl),
+        (err) => {
+          assert.ok(!err.message.includes('supersecret'), 'raw error body must not be surfaced');
+          assert.match(err.message, /API request failed \(HTTP 500\)/);
+          return true;
+        },
       );
     });
 

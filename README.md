@@ -162,7 +162,7 @@ This server runs as a child process of the MCP host (Claude Desktop, Claude Code
 
 **What the server does**
 - Read-only proxy to two Altmetric HTTP APIs over outbound HTTPS. The one exception is an idempotent `POST` to the Explorer identifier_lists endpoint (create-or-find), used internally to scope an Explorer query to a supplied set of identifiers; it creates no user-visible state and is not destructive.
-- No inbound network surface; no destructive operations.
+- No inbound network surface in the default stdio mode; no destructive operations. (The opt-in [HTTP transport](#http-transport-oauth--experimental) adds an OAuth-gated inbound surface.)
 - Treats upstream text as untrusted: scans for prompt-injection markers, redacts suspicious matches in the LLM-facing summary, and surfaces raw values only via `structuredContent`.
 
 **What you should do**
@@ -179,6 +179,45 @@ This server runs as a child process of the MCP host (Claude Desktop, Claude Code
 - Upstream error bodies are logged to stderr by SHA-256 prefix only, not verbatim.
 
 For vulnerability reports and supported versions see [SECURITY.md](SECURITY.md).
+
+## HTTP transport (OAuth) — experimental
+
+Besides the default stdio entrypoint, the server can run as a long-lived HTTP service that
+authenticates callers with OAuth 2.1 instead of static API keys. This is intended for
+shared/remote deployments and is still experimental.
+
+In this mode the server is an OAuth **resource server**: clients present a bearer token issued
+by Altmetric Explorer (the authorization server). The server validates the token, exchanges it
+for that user's Explorer API credentials via Explorer's credential broker, then signs Explorer
+API calls itself — the client's bearer is **never** forwarded to the Altmetric API. Only the
+Explorer tools are exposed over HTTP; Details Page tools remain stdio-only for now.
+
+Run it:
+
+```bash
+npm run start:http
+```
+
+Configuration (environment variables):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | Port to listen on |
+| `HOST` | `127.0.0.1` | Interface to bind |
+| `EXPLORER_BASE_URL` | `https://www.altmetric.com` | Explorer authorization server + API host (host-only; the `/explorer` prefix is baked in) |
+| `EXPLORER_ISSUER` | `EXPLORER_BASE_URL` | OAuth issuer advertised in the RFC 9728 metadata. Must exactly equal the authorization server's RFC 8414 `issuer`. Only set for non-standard hosts. |
+| `MCP_PUBLIC_URL` | `http://HOST:PORT` | This server's public URL (used in discovery metadata + `WWW-Authenticate`) |
+
+No `ALTMETRIC_*` keys are used on the HTTP transport — credentials are brokered per request.
+
+Endpoints:
+
+- `POST /mcp` — MCP Streamable HTTP (bearer required). The transport is **stateless**: a fresh server/transport is created per request, so there are no sessions, any instance serves any request, and redeploys are invisible to clients. `GET`/`DELETE /mcp` return `405` (no server-initiated stream, no session to close).
+- `GET /.well-known/oauth-protected-resource` — RFC 9728 metadata pointing clients at Explorer
+- `GET /health` — health check
+
+Unauthenticated `/mcp` requests get `401` with a `WWW-Authenticate` header pointing at the
+metadata document, so MCP clients can discover Explorer and run the OAuth flow automatically.
 
 ## Troubleshooting
 

@@ -6,7 +6,8 @@
   "type": "module",
   "main": "index.js",
   "bin": {
-    "altmetric-mcp": "index.js"
+    "altmetric-mcp": "index.js",
+    "altmetric-mcp-serve": "bin/altmetric-mcp-serve.js"
   },
   "repository": {
     "type": "git",
@@ -18,7 +19,9 @@
   "homepage": "https://github.com/altmetric/altmetric-mcp#readme",
   "scripts": {
     "start": "node --env-file=.env index.js",
+    "start:http": "node --env-file=.env bin/altmetric-mcp-serve.js",
     "dev": "node --watch --env-file=.env index.js",
+    "dev:http": "node --watch --env-file=.env bin/altmetric-mcp-serve.js",
     "test": "NODE_ENV=test mocha",
     "test:unit": "NODE_ENV=test mocha",
     "test:integration": "node --env-file=.env test/integration.test.js"
@@ -36,7 +39,8 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@altmetric/identifiers": "^1.0.0"
+    "@altmetric/identifiers": "^1.0.0",
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "mocha": "^11.7.2",

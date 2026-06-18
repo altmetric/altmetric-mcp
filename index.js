@@ -37,13 +37,19 @@ if (!hasDetailsApi && !hasExplorerApi) {
   process.exit(1);
 }
 
-// Create tools with API configuration
+// Create tools with static, env-keyed credential resolvers (stdio transport).
+// Resolvers return constant creds, so behaviour matches the previous closed-over config.
 const tools = createTools({
-  detailsApiKey: DETAILS_API_KEY,
-  detailsApiBaseUrl: DETAILS_API_BASE_URL,
-  explorerApiKey: EXPLORER_API_KEY,
-  explorerApiSecret: EXPLORER_API_SECRET,
-  explorerApiBaseUrl: EXPLORER_API_BASE_URL,
+  details: hasDetailsApi
+    ? async () => ({ apiKey: DETAILS_API_KEY, baseUrl: DETAILS_API_BASE_URL })
+    : undefined,
+  explorer: hasExplorerApi
+    ? async () => ({
+      apiKey: EXPLORER_API_KEY,
+      apiSecret: EXPLORER_API_SECRET,
+      baseUrl: EXPLORER_API_BASE_URL,
+    })
+    : undefined,
 });
 
 // Create and configure the server

@@ -18,14 +18,16 @@ const EXPLORER_API_KEY = 'test_explorer_api_key';
 const EXPLORER_API_SECRET = 'test_explorer_api_secret';
 const EXPLORER_API_BASE_URL = 'https://www.altmetric.com';
 
-// Create tools with test configuration
-const tools = createTools({
-  detailsApiKey: DETAILS_API_KEY,
-  detailsApiBaseUrl: DETAILS_API_BASE_URL,
-  explorerApiKey: EXPLORER_API_KEY,
-  explorerApiSecret: EXPLORER_API_SECRET,
-  explorerApiBaseUrl: EXPLORER_API_BASE_URL,
+// Static credential resolvers mirroring the stdio entry's per-call resolution.
+const detailsResolver = async () => ({ apiKey: DETAILS_API_KEY, baseUrl: DETAILS_API_BASE_URL });
+const explorerResolver = async () => ({
+  apiKey: EXPLORER_API_KEY,
+  apiSecret: EXPLORER_API_SECRET,
+  baseUrl: EXPLORER_API_BASE_URL,
 });
+
+// Create tools with test configuration
+const tools = createTools({ details: detailsResolver, explorer: explorerResolver });
 
 // Extract handlers for easier testing
 const toolHandlers = Object.keys(tools).reduce((acc, key) => {
@@ -41,30 +43,17 @@ describe('Conditional Tool Registration', function () {
   ];
 
   it('returns all 11 tools when both APIs configured', function () {
-    const allTools = createTools({
-      detailsApiKey: DETAILS_API_KEY,
-      detailsApiBaseUrl: DETAILS_API_BASE_URL,
-      explorerApiKey: EXPLORER_API_KEY,
-      explorerApiSecret: EXPLORER_API_SECRET,
-      explorerApiBaseUrl: EXPLORER_API_BASE_URL,
-    });
+    const allTools = createTools({ details: detailsResolver, explorer: explorerResolver });
     assert.deepStrictEqual(Object.keys(allTools).sort(), [...DETAILS_TOOLS, ...EXPLORER_TOOLS].sort());
   });
 
-  it('returns only Details tools when only detailsApiKey provided', function () {
-    const detailsOnly = createTools({
-      detailsApiKey: DETAILS_API_KEY,
-      detailsApiBaseUrl: DETAILS_API_BASE_URL,
-    });
+  it('returns only Details tools when only the details resolver is provided', function () {
+    const detailsOnly = createTools({ details: detailsResolver });
     assert.deepStrictEqual(Object.keys(detailsOnly).sort(), DETAILS_TOOLS.sort());
   });
 
-  it('returns only Explorer tools when only Explorer keys provided', function () {
-    const explorerOnly = createTools({
-      explorerApiKey: EXPLORER_API_KEY,
-      explorerApiSecret: EXPLORER_API_SECRET,
-      explorerApiBaseUrl: EXPLORER_API_BASE_URL,
-    });
+  it('returns only Explorer tools when only the Explorer resolver is provided', function () {
+    const explorerOnly = createTools({ explorer: explorerResolver });
     assert.deepStrictEqual(Object.keys(explorerOnly).sort(), EXPLORER_TOOLS.sort());
   });
 

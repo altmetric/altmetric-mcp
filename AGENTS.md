@@ -85,7 +85,7 @@ Tests live under `/test/` (one `*_test.js` file per `lib/` module, plus `integra
 - `generateExplorerDigest()` - HMAC-SHA1 digest from sorted filters
 - `generateIdentifierListDigest()` - HMAC-SHA1 digest for the identifier_lists endpoint (different convention - see below)
 
-**Other lib/ modules**: `filter-validators.js` (runtime filter validation), `validators.js` (identifier-format validation), `args-limits.js` (inbound arg caps), `output-guard.js` (prompt-injection scrubbing of upstream text).
+**Other lib/ modules**: `filter-validators.js` (runtime filter validation), `validators.js` (identifier-format validation), `args-limits.js` (inbound arg caps), `output-guard.js` (prompt-injection scrubbing of upstream text), `output-limits.js` (outbound result-size backstop - see below).
 
 ### Authentication
 
@@ -97,7 +97,7 @@ Tests live under `/test/` (one `*_test.js` file per `lib/` module, plus `integra
 - Requires both API key and secret
 - Generates HMAC-SHA1 digest from alphabetically sorted filters
 - Digest construction (`generateExplorerDigest` in `lib/api-client.js`):
-  1. Exclude `order`, `page[number]`, `page[size]` from digest
+  1. Exclude `order`, `page[number]`, `page[size]`, `include` from digest (these are top-level presentation params, not filters; verified against production - the same digest validates regardless of the `include` value)
   2. Sort remaining filter keys alphabetically
   3. Build pipe-separated string: `key|value|key|value` (NOT `filter[key]=value`)
   4. For arrays: `key|value1|value2` (values follow key immediately)
@@ -161,6 +161,9 @@ Tools will fail at runtime if their required API credentials are not configured 
 - Explorer pagination args `page_number`/`page_size` map to `page[number]`/`page[size]` via `PAGINATION_KEY_MAP`; they are excluded from the digest.
 - Explorer `researcher_id` and `grant_id` are array filters (Dimensions IDs) in `SHARED_FILTER_KEYS`, emitted as `filter[key][]`.
 - Explorer `identifiers` (a raw identifier list) is consumed by `resolveIdentifierList()` and converted into an `identifier_list_id` via an internal POST; it is never forwarded to the read endpoint as a filter, and is mutually exclusive with `identifier_list_id`.
+- Explorer `include_related` (on `explore_mentions` and `explore_mention_sources` only) controls the JSON:API `included` block. Default `false` sends `include=` (empty) to suppress it; `true` omits the param so the API embeds all related objects (the documented default is "all"). This is the main lever for response size: the `included` dictionary on those two endpoints embeds full mentioned research-output records (title, mention-count breakdowns, score, sentiment totals - no abstract field exists) plus author/journal objects per mention, and is what pushes large queries past the client's payload cap. The other endpoints either have no `include` param (`explore_research_outputs` returns a lighter disambiguation `included` with no request-level control) or return `included: {}` (the aggregate endpoints).
+
+**Response size:** the binding client limit is tokens, not bytes - Claude Code caps MCP tool output at ~25k tokens by default (`MAX_MCP_OUTPUT_TOKENS`), other clients ~1MB of bytes - while the upstream byte cap (`MAX_RESPONSE_BYTES`, `lib/api-client.js`) is 20MB to support `get_citation_details`, so a large Explorer payload can clear the upstream cap and still be rejected (or spilled to a file) by the client. `enforceResultSizeLimit()` (`lib/output-limits.js`, applied centrally in `index.js`) is the backstop: when a result serializes over `MAX_RESULT_BYTES` (40KB - dense Explorer JSON runs ~2 chars/token, so Claude Code's ~25k-token cap is only ~40KB for the densest endpoint, verified by live measurement) it sheds the `included` block, then trims the `data[]` array to its largest fitting prefix (binary-searched, not one pop-and-reserialize at a time - that was O(n^2) and took ~50s on a 12k-item payload; recording `meta.truncated`), then as a last resort replaces the payload with an explanatory error - appending a `[truncated]` note to the summary so the model can paginate or narrow. It is only a last resort: pagination and the `include_related=false` default keep normal results far smaller. The main trigger is `explore_journals`: it is single-page, ignores `page[size]`, and a broad query (e.g. `q=cancer`) aggregates ~12k journals (~5MB), so narrow it with filters.
 
 **Response fields (passthrough):** new upstream fields surface automatically via `structuredContent` with no client changes - `authors_details` (name + Dimensions Researcher ID) on the Details `get_citation_details` citation block, and Explorer sentiment data (`sentiment-analysis-totals` on research outputs, `sentiment-analysis` on X/Bluesky mentions). Tool descriptions advertise these for discoverability.
 
@@ -175,7 +178,7 @@ Tools will fail at runtime if their required API credentials are not configured 
 - **No references to internal or private repos.** No commit SHAs, branch names, internal class/method names, or internal file paths from other Altmetric repos - in source, comments, commit messages, or test data. Describe public behaviour (e.g. "the Explorer API verifies the digest with the secret's dashes removed"), never how an internal service implements it. Internal rationale that needs those references belongs in the internal tracking doc, not here.
 - API credentials must never be committed to repositories (Details Page API key, Explorer API key/secret)
 - HMAC digest ensures requests cannot be forged without the secret
-- Digest is generated from filter parameters only (excludes `key`, `digest`, `order`, `page[number]`, `page[size]`)
+- Digest is generated from filter parameters only (excludes `key`, `digest`, `order`, `page[number]`, `page[size]`, `include`)
 
 **Pagination:**
 - Explorer API uses `page[number]` and `page[size]` (not `page` and `per_page`)

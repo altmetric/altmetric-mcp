@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { createTools } from './lib/tools.js';
 import { assertArgsWithinLimits } from './lib/args-limits.js';
+import { enforceResultSizeLimit } from './lib/output-limits.js';
 
 // Details Page API configuration
 const DETAILS_API_KEY = process.env.ALTMETRIC_DETAILS_API_KEY;
@@ -76,7 +77,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     assertArgsWithinLimits(args);
-    return await tool.handler(args);
+    const result = await tool.handler(args);
+    // Keep the result under the MCP client's payload cap so the client never
+    // drops an oversized response whole (see lib/output-limits.js).
+    return enforceResultSizeLimit(result);
   } catch (error) {
     // Log full error for debugging
     console.error(`Tool ${name} error:`, error);

@@ -95,6 +95,7 @@ Retrieve individual mentions of research outputs with detailed information about
 - `mentioned_after`/`mentioned_before`: Date range filters
 - `countries`: Filter by country codes
 - `page_number`, `page_size`: Pagination controls
+- `include_related`: Embed related objects (the mention author profile, journal, and the full mentioned research-output records). Defaults to `false` to keep responses small. Setting it `true` is **heavy** — for every mention it embeds the full referenced research-output records (titles, mention-count breakdowns, scores, sentiment totals) plus author/journal objects, and can exceed client size limits on busy queries. Leave it off unless you specifically need that related data.
 
 ### `explore_demographics`
 Get demographic information about the audiences engaging with research outputs. Analyze geographic distribution, demographic patterns, and audience characteristics.
@@ -114,13 +115,16 @@ Get information about the sources of mentions for research outputs. Analyze whic
 - `source_type`: Filter by source type (news, twitter, policy, etc.)
 - `countries`: Filter by country codes
 - `page_number`, `page_size`: Pagination controls
+- `include_related`: Embed related objects (author profiles, journals, full mentioned research-output records). Defaults to `false` to keep responses small; setting it `true` is **heavy** and can exceed client size limits. Leave it off unless you specifically need that related data.
 
 ### `explore_journals`
-Get journal-related data and metrics. Search and filter by publication venue, analyze journal impact, and retrieve journal rankings.
+Get aggregated mention data by journal — journal names, ISSNs, and mention counts broken down by source type.
+
+**Single-page endpoint — no pagination.** It does not honor `page[size]`, so a broad query aggregates *every* matching journal into one response (e.g. `q=cancer` returns ~12,000 journals), which the server's size guard then truncates. Narrow the query to keep the result complete — there is no result-count limit, so filtering is the only control.
 
 **Key Parameters:**
-- `q`: Search query for journal name or ISSN
-- `journal_id`, `issn`: Filter by journal identifiers
-- `subject`: Filter by subject area
-- `publisher`: Filter by publisher name
-- `page_number`, `page_size`: Pagination controls
+- `q`: Search query (title, author, journal)
+- `journal_id`: Filter by specific journal IDs
+- `type`: Filter by research output type
+- `timeframe`, `published_after`/`published_before`: Time filters
+- `identifiers` / `identifier_list_id`: Scope to a specific set of outputs

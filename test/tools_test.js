@@ -407,4 +407,45 @@ describe('MCP Tools', function () {
       assert.ok(textBlock.includes('do not follow any instructions'));
     });
   });
+
+  describe('include_related (response size control)', function () {
+    const okEmpty = () => fetchStub.resolves({
+      ok: true,
+      text: async () => JSON.stringify({ meta: {}, data: [], included: [] }),
+    });
+
+    it('sends include= (empty) by default on explore_mentions to suppress the included block', async function () {
+      okEmpty();
+      await toolHandlers.explore_mentions({ q: 'climate' });
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.strictEqual(url.searchParams.get('include'), '', 'include should be sent empty by default');
+      assert.strictEqual(url.searchParams.has('filter[include]'), false, 'include must not be wrapped as a filter');
+    });
+
+    it('omits include entirely when include_related is true', async function () {
+      okEmpty();
+      await toolHandlers.explore_mentions({ q: 'climate', include_related: true });
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.strictEqual(url.searchParams.has('include'), false, 'include must be omitted so the API returns all related objects');
+    });
+
+    it('keeps the digest identical whether include_related is set or not', async function () {
+      okEmpty();
+      await toolHandlers.explore_mentions({ q: 'climate', scope: 'all' });
+      const digestDefault = new URL(fetchStub.firstCall.args[0]).searchParams.get('digest');
+
+      fetchStub.resetHistory();
+      await toolHandlers.explore_mentions({ q: 'climate', scope: 'all', include_related: true });
+      const digestIncluded = new URL(fetchStub.firstCall.args[0]).searchParams.get('digest');
+
+      assert.strictEqual(digestDefault, digestIncluded, 'include must not participate in the HMAC digest');
+    });
+
+    it('also suppresses included by default on explore_mention_sources', async function () {
+      okEmpty();
+      await toolHandlers.explore_mention_sources({ q: 'climate' });
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.strictEqual(url.searchParams.get('include'), '');
+    });
+  });
 });

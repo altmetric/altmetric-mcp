@@ -6,9 +6,13 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { readFileSync } from 'node:fs';
 import { createTools } from './lib/tools.js';
 import { assertArgsWithinLimits } from './lib/args-limits.js';
 import { enforceResultSizeLimit } from './lib/output-limits.js';
+
+// Advertise the package version (single source of truth: package.json) to MCP clients.
+const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
 // Details Page API configuration
 const DETAILS_API_KEY = process.env.ALTMETRIC_DETAILS_API_KEY;
@@ -56,7 +60,7 @@ const tools = createTools({
 const server = new Server(
   {
     name: 'altmetric-mcp-server',
-    version: '0.1.0',
+    version,
   },
   {
     capabilities: {

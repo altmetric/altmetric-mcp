@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'node:fs';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
@@ -13,6 +14,9 @@ import { createExplorerBroker } from '../lib/credentials/explorer-broker.js';
 import { bearerAuth } from '../lib/middleware/bearer.js';
 import { runWithContext, currentContext } from '../lib/http/context.js';
 import { protectedResourceMetadata } from '../lib/http/well-known.js';
+
+// Advertise the package version (single source of truth: package.json) to MCP clients.
+const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
 // Explorer is both the OAuth authorization server and the API host; the broker and
 // /explorer/api live here. Host-only: the /explorer prefix is baked into the broker +
@@ -59,7 +63,7 @@ function createServer() {
   const server = new Server(
     {
       name: 'altmetric-mcp-server',
-      version: '0.6.1',
+      version,
     },
     {
       capabilities: {

@@ -10,6 +10,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { createTools } from '../lib/tools.js';
 import { assertArgsWithinLimits } from '../lib/args-limits.js';
+import { enforceResultSizeLimit } from '../lib/output-limits.js';
 import { createCredentialsBroker } from '../lib/credentials/broker.js';
 import { bearerAuth } from '../lib/middleware/bearer.js';
 import { protectedResourceMetadata } from '../lib/http/well-known.js';
@@ -109,7 +110,8 @@ function createServer(tools) {
 
     try {
       assertArgsWithinLimits(args);
-      return await tool.handler(args);
+      // Trim oversized results to the client cap, matching the stdio entry (index.js).
+      return enforceResultSizeLimit(await tool.handler(args));
     } catch (error) {
       console.error(`Tool ${name} error:`, error);
 
@@ -202,8 +204,24 @@ function methodNotAllowed(req, res) {
 app.get('/mcp', methodNotAllowed);
 app.delete('/mcp', methodNotAllowed);
 
+// Body-parse / middleware errors (e.g. a too-large POST body) otherwise reach Express's
+// default handler, which outside production returns an HTML stack trace leaking absolute
+// file paths. Return a clean JSON-RPC error instead; the detail stays in the server log.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  console.error('Request error:', err.message);
+  if (!res.headersSent) {
+    res.status(status).json({
+      jsonrpc: '2.0',
+      error: { code: -32600, message: status === 413 ? 'Request body too large' : 'Bad request' },
+      id: null,
+    });
+  }
+});
+
 // Start the server
-app.listen(PORT, HOST, (error) => {
+const httpServer = app.listen(PORT, HOST, (error) => {
   if (error) {
     console.error('Failed to start server:', error);
     process.exit(1);
@@ -220,11 +238,12 @@ app.listen(PORT, HOST, (error) => {
   console.log(`  GET    http://${HOST}:${PORT}/health                                - Health check`);
 });
 
-// Handle server shutdown. Per-request transports are torn down on response close, so
-// there is no session state to drain here.
+// Handle server shutdown: stop accepting connections and let in-flight /mcp requests
+// finish before exiting, with a safety net in case a connection refuses to drain.
 function shutdown(signal) {
   console.log(`\nReceived ${signal}, shutting down...`);
-  process.exit(0);
+  httpServer.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 10_000).unref();
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));

@@ -61,6 +61,16 @@ describe('credentials-broker', function () {
     assert.strictEqual(calls, 2);
   });
 
+  it('sweeps expired entries on insert so the cache stays bounded', async function () {
+    let clock = 1000;
+    const broker = makeBroker({ ttlMs: 100, now: () => clock, fetchImpl: async () => okResponse({}) });
+    await broker.get('a'); // expires at 1100
+    assert.strictEqual(broker.cacheSize(), 1);
+    clock = 1200; // 'a' is now expired
+    await broker.get('b'); // inserting 'b' sweeps the expired 'a'
+    assert.strictEqual(broker.cacheSize(), 1);
+  });
+
   it('throws UnauthorizedError on 401 and caches nothing', async function () {
     const broker = makeBroker({ fetchImpl: async () => status(401) });
     await assert.rejects(() => broker.get('tok'), UnauthorizedError);

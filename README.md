@@ -180,7 +180,7 @@ This server runs as a child process of the MCP host (Claude Desktop, Claude Code
 
 For vulnerability reports and supported versions see [SECURITY.md](SECURITY.md).
 
-## HTTP transport (OAuth) — experimental
+## HTTP transport (OAuth), experimental
 
 Besides the default stdio entrypoint, the server can run as a long-lived HTTP service that
 authenticates callers with OAuth 2.1 instead of static API keys. This is intended for
@@ -189,7 +189,7 @@ shared/remote deployments and is still experimental.
 In this mode the server is an OAuth **resource server**: clients present a bearer token issued
 by Altmetric Explorer (the authorization server) for the single `mcp` scope. The server
 exchanges that token at Explorer's aggregate credentials endpoint for the user's entitlement
-map — the API keys for the products they can use (Explorer, Detail Pages, or both) — then calls
+map (the API keys for the products they can use: Explorer, Detail Pages, or both), then calls
 the Altmetric APIs itself; the client's bearer is **never** forwarded to them. The advertised
 toolset reflects that map, exactly like the stdio transport gates tools by configured keys: a
 user sees the tools for the products they have and nothing more.
@@ -211,13 +211,13 @@ Configuration (environment variables):
 | `DETAILS_API_BASE_URL` | `https://api.altmetric.com` | Detail Pages API host. The per-user key is brokered from Explorer; the API calls go here. |
 | `MCP_PUBLIC_URL` | `http://HOST:PORT` | This server's public URL (used in discovery metadata + `WWW-Authenticate`) |
 
-No `ALTMETRIC_*` keys are used on the HTTP transport — credentials are brokered per request.
+No `ALTMETRIC_*` keys are used on the HTTP transport; credentials are brokered per request.
 
 Endpoints:
 
-- `POST /mcp` — MCP Streamable HTTP (bearer required). The transport is **stateless**: a fresh server/transport is created per request, so there are no sessions, any instance serves any request, and redeploys are invisible to clients. `GET`/`DELETE /mcp` return `405` (no server-initiated stream, no session to close).
-- `GET /.well-known/oauth-protected-resource` — RFC 9728 metadata pointing clients at Explorer
-- `GET /health` — health check
+- `POST /mcp`: MCP Streamable HTTP (bearer required). The transport is **stateless**: a fresh server/transport is created per request, so there are no sessions, any instance serves any request, and redeploys are invisible to clients. `GET`/`DELETE /mcp` return `405` (no server-initiated stream, no session to close).
+- `GET /.well-known/oauth-protected-resource`: RFC 9728 metadata pointing clients at Explorer
+- `GET /health`: health check
 
 Unauthenticated `/mcp` requests get `401` with a `WWW-Authenticate` header pointing at the
 metadata document, so MCP clients can discover Explorer and run the OAuth flow automatically.

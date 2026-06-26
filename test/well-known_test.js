@@ -10,7 +10,7 @@ describe('protectedResourceMetadata (RFC 9728)', function () {
 
     assert.strictEqual(doc.resource, 'https://mcp.example.com');
     assert.deepStrictEqual(doc.authorization_servers, ['https://explorer.example.com']);
-    assert.deepStrictEqual(doc.scopes_supported, ['explorer']);
+    assert.deepStrictEqual(doc.scopes_supported, ['mcp']);
     assert.deepStrictEqual(doc.bearer_methods_supported, ['header']);
   });
 

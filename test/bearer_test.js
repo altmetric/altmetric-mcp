@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { extractBearer, bearerAuth } from '../lib/middleware/bearer.js';
-import { UnauthorizedError } from '../lib/credentials/explorer-broker.js';
+import { UnauthorizedError } from '../lib/credentials/broker.js';
 
 const resourceMetadataUrl = 'https://mcp.example.com/.well-known/oauth-protected-resource';
 

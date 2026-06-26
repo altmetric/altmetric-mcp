@@ -187,10 +187,12 @@ authenticates callers with OAuth 2.1 instead of static API keys. This is intende
 shared/remote deployments and is still experimental.
 
 In this mode the server is an OAuth **resource server**: clients present a bearer token issued
-by Altmetric Explorer (the authorization server). The server validates the token, exchanges it
-for that user's Explorer API credentials via Explorer's credential broker, then signs Explorer
-API calls itself — the client's bearer is **never** forwarded to the Altmetric API. Only the
-Explorer tools are exposed over HTTP; Details Page tools remain stdio-only for now.
+by Altmetric Explorer (the authorization server) for the single `mcp` scope. The server
+exchanges that token at Explorer's aggregate credentials endpoint for the user's entitlement
+map — the API keys for the products they can use (Explorer, Detail Pages, or both) — then calls
+the Altmetric APIs itself; the client's bearer is **never** forwarded to them. The advertised
+toolset reflects that map, exactly like the stdio transport gates tools by configured keys: a
+user sees the tools for the products they have and nothing more.
 
 Run it:
 
@@ -206,6 +208,7 @@ Configuration (environment variables):
 | `HOST` | `127.0.0.1` | Interface to bind |
 | `EXPLORER_BASE_URL` | `https://www.altmetric.com` | Explorer authorization server + API host (host-only; the `/explorer` prefix is baked in) |
 | `EXPLORER_ISSUER` | `EXPLORER_BASE_URL` | OAuth issuer advertised in the RFC 9728 metadata. Must exactly equal the authorization server's RFC 8414 `issuer`. Only set for non-standard hosts. |
+| `DETAILS_API_BASE_URL` | `https://api.altmetric.com` | Detail Pages API host. The per-user key is brokered from Explorer; the API calls go here. |
 | `MCP_PUBLIC_URL` | `http://HOST:PORT` | This server's public URL (used in discovery metadata + `WWW-Authenticate`) |
 
 No `ALTMETRIC_*` keys are used on the HTTP transport — credentials are brokered per request.

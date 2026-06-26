@@ -10,9 +10,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { createTools } from '../lib/tools.js';
 import { assertArgsWithinLimits } from '../lib/args-limits.js';
-import { createExplorerBroker } from '../lib/credentials/explorer-broker.js';
+import { createCredentialsBroker } from '../lib/credentials/broker.js';
 import { bearerAuth } from '../lib/middleware/bearer.js';
-import { runWithContext, currentContext } from '../lib/http/context.js';
 import { protectedResourceMetadata } from '../lib/http/well-known.js';
 
 // Advertise the package version (single source of truth: package.json) to MCP clients.
@@ -32,6 +31,10 @@ const EXPLORER_BASE_URL = process.env.EXPLORER_BASE_URL || 'https://www.altmetri
 // metadata at that apex. Configurable via EXPLORER_ISSUER for non-standard hosts.
 const EXPLORER_ISSUER = (process.env.EXPLORER_ISSUER || EXPLORER_BASE_URL).replace(/\/$/, '');
 
+// The Detail Pages API is a separate host from Explorer (which hosts the broker + the
+// Explorer API). Its per-user key is brokered from Explorer, but the API calls go here.
+const DETAILS_API_BASE_URL = process.env.DETAILS_API_BASE_URL || 'https://api.altmetric.com';
+
 // HTTP server configuration
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -39,27 +42,45 @@ const HOST = process.env.HOST || '127.0.0.1';
 const MCP_PUBLIC_URL = (process.env.MCP_PUBLIC_URL || `http://${HOST}:${PORT}`).replace(/\/$/, '');
 const RESOURCE_METADATA_URL = `${MCP_PUBLIC_URL}/.well-known/oauth-protected-resource`;
 
-// Broker the per-user (api_key, api_secret) from the caller's OAuth bearer. The same
-// call validates the token (200 = valid, 401/403 = reject), cached by token hash.
-const broker = createExplorerBroker({ baseUrl: EXPLORER_BASE_URL });
-
-// Explorer tools only: the broker delivers Explorer credentials. Details Page user
-// keys are a later ticket (SOI-731). The resolver reads the current request's bearer
-// from the async context, so the once-built tools serve every request's user.
-const tools = createTools({
-  explorer: async () => {
-    const ctx = currentContext();
-    if (!ctx || !ctx.token) {
-      throw new Error('No authenticated request context for Explorer credentials');
+// Exchange the caller's OAuth bearer for the resource owner's entitlement map —
+// { explorer?: { api_key, api_secret }, detail_pages_api?: { api_key } } — listing only
+// the products they can use. The same call validates the token (200 = valid, 401/403 =
+// reject) and is cached by token hash. Explorer decides entitlements; the MCP just renders
+// them, so the transport stays purely an authentication layer.
+const broker = createCredentialsBroker({
+  baseUrl: EXPLORER_BASE_URL,
+  path: '/explorer/oauth/credentials/mcp',
+  extract: (body) => {
+    if (!body || typeof body !== 'object') {
+      throw new Error('MCP credentials response was not an object');
     }
-    const { apiKey, apiSecret } = await broker.get(ctx.token);
-    return { apiKey, apiSecret, baseUrl: EXPLORER_BASE_URL };
+    return body;
   },
 });
 
-// Create a new MCP server instance. The transport is stateless, so this is built fresh
-// per request (see the POST handler) and torn down when the response closes.
-function createServer() {
+// Build the toolset for a request from its entitlement map, mirroring the stdio entry's
+// presence-gating: a product's tools are exposed only when its credentials are present.
+// The resolvers close over this request's credentials, so the tools sign their own API
+// calls without the client's bearer ever reaching the Altmetric APIs.
+function buildTools(credentials) {
+  return createTools({
+    explorer: credentials.explorer
+      ? async () => ({
+        apiKey: credentials.explorer.api_key,
+        apiSecret: credentials.explorer.api_secret,
+        baseUrl: EXPLORER_BASE_URL,
+      })
+      : undefined,
+    details: credentials.detail_pages_api
+      ? async () => ({ apiKey: credentials.detail_pages_api.api_key, baseUrl: DETAILS_API_BASE_URL })
+      : undefined,
+  });
+}
+
+// Create a new MCP server instance for a request, exposing the given toolset. The transport
+// is stateless, so this is built fresh per request (see the POST handler) and torn down when
+// the response closes.
+function createServer(tools) {
   const server = new Server(
     {
       name: 'altmetric-mcp-server',
@@ -107,26 +128,14 @@ function createServer() {
   return server;
 }
 
-// Validate the bearer by brokering its credentials (broker-only validation: 200 = valid,
-// 401/403 = reject). The lookup is cached by token hash, so the tool call later in the
-// same request reuses it. The principal is unused downstream (stateless: no session to
-// own), so validation only needs to succeed or throw.
+// Validate the bearer by brokering its entitlement map (broker-only validation: 200 =
+// valid, 401/403 = reject). The map is attached to the request as the principal and reused
+// to build the toolset, and the lookup is cached by token hash, so the whole request costs
+// one broker call.
 const authenticate = bearerAuth({
-  validate: async (token) => {
-    await broker.get(token);
-    return {};
-  },
+  validate: async (token) => broker.get(token),
   resourceMetadataUrl: RESOURCE_METADATA_URL,
 });
-
-// Run the MCP request inside the per-request async context so a tool's credential
-// resolver can read this request's bearer.
-function handleWithContext(req, res, transport, body) {
-  return runWithContext(
-    { token: req.bearerToken, principal: req.principal },
-    () => transport.handleRequest(req, res, body)
-  );
-}
 
 // Create Express app with MCP configuration
 const app = createMcpExpressApp({ host: HOST });
@@ -136,6 +145,7 @@ app.get('/.well-known/oauth-protected-resource', (req, res) => {
   res.json(protectedResourceMetadata({
     resource: MCP_PUBLIC_URL,
     authorizationServers: [EXPLORER_ISSUER],
+    scopes: ['mcp'],
   }));
 });
 
@@ -149,7 +159,9 @@ app.get('/health', (req, res) => {
 // any request and a redeploy is invisible to clients. The tools are request/response
 // only (no server-initiated streaming/notifications), so dropping sessions costs nothing.
 app.post('/mcp', authenticate, async (req, res) => {
-  const server = createServer();
+  // req.principal is this caller's entitlement map (from authenticate); the toolset
+  // reflects exactly the products they can use.
+  const server = createServer(buildTools(req.principal));
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
 
   res.on('close', () => {
@@ -159,7 +171,7 @@ app.post('/mcp', authenticate, async (req, res) => {
 
   try {
     await server.connect(transport);
-    await handleWithContext(req, res, transport, req.body);
+    await transport.handleRequest(req, res, req.body);
   } catch (error) {
     console.error('Error handling MCP request:', error);
     if (!res.headersSent) {
@@ -199,6 +211,7 @@ app.listen(PORT, HOST, (error) => {
   console.log(`Altmetric MCP HTTP Server running at http://${HOST}:${PORT}/mcp`);
   console.log('Transport: Streamable HTTP (stateless, OAuth-only)');
   console.log(`Explorer (broker + API): ${EXPLORER_BASE_URL}`);
+  console.log(`Detail Pages API: ${DETAILS_API_BASE_URL}`);
   console.log(`Authorization server issuer (advertised): ${EXPLORER_ISSUER}`);
   console.log('');
   console.log('Available endpoints:');

@@ -6,20 +6,34 @@ import { setTimeout as sleep } from 'timers/promises';
 /**
  * Integration tests for the HTTP transport entry (bin/altmetric-mcp-serve.js).
  *
- * Spawns the real server against a stub Explorer (broker + Explorer API) and drives it
- * over HTTP. Verifies: RFC 9728 discovery, 401 + WWW-Authenticate for unauthenticated /
- * rejected callers, the full brokered tool call, the spec token-passthrough prohibition
- * (the client bearer never reaches Explorer's /api), broker-credential caching, and the
- * stateless transport contract (no session id; GET/DELETE unsupported).
+ * Spawns the real server against a stub Explorer (aggregate credentials broker + Explorer
+ * API + Detail Pages API) and drives it over HTTP. Verifies: RFC 9728 discovery, 401 +
+ * WWW-Authenticate for unauthenticated / rejected callers, that the advertised toolset
+ * reflects the caller's entitlements (Explorer-only, Detail-Pages-only, both), the signed
+ * API calls, the spec token-passthrough prohibition (the client bearer never reaches the
+ * Altmetric APIs), broker-credential caching, and the stateless transport contract.
  */
 
 const PORT = 34571;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
-const GOOD = 'good-token';
 
-// Bearer -> brokered api_key. Anything not listed is rejected (401) by the broker stub.
-const TOKEN_API_KEYS = {
-  [GOOD]: 'brokered-key',
+const GOOD = 'good-token';                 // entitled to both products
+const EXPLORER_ONLY = 'explorer-only-token';
+const DETAILS_ONLY = 'details-only-token';
+
+// Bearer -> entitlement map returned by the aggregate credentials endpoint. Anything not
+// listed is rejected (401) by the broker stub.
+const TOKEN_CREDENTIALS = {
+  [GOOD]: {
+    explorer: { api_key: 'brokered-key', api_secret: 'brokered-secret-1234567890' },
+    detail_pages_api: { api_key: 'brokered-details-key' },
+  },
+  [EXPLORER_ONLY]: {
+    explorer: { api_key: 'brokered-key', api_secret: 'brokered-secret-1234567890' },
+  },
+  [DETAILS_ONLY]: {
+    detail_pages_api: { api_key: 'dp-only-key' },
+  },
 };
 
 const MCP_HEADERS = {
@@ -33,21 +47,22 @@ let serverStderr = '';
 // --- stub Explorer ---------------------------------------------------------
 let explorer;
 let explorerOrigin;
-const brokerHits = {};
+const credsHits = {};
 let lastExplorerApiRequest = null;
+let lastDetailsApiRequest = null;
 
 function startExplorerStub() {
   return new Promise((resolve) => {
     explorer = http.createServer((req, res) => {
       const url = new URL(req.url, `http://${req.headers.host}`);
 
-      if (url.pathname === '/explorer/oauth/credentials/explorer') {
+      if (url.pathname === '/explorer/oauth/credentials/mcp') {
         const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-        brokerHits[token] = (brokerHits[token] || 0) + 1;
-        const apiKey = TOKEN_API_KEYS[token];
-        if (apiKey) {
+        credsHits[token] = (credsHits[token] || 0) + 1;
+        const creds = TOKEN_CREDENTIALS[token];
+        if (creds) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ api_key: apiKey, api_secret: 'brokered-secret-1234567890' }));
+          res.end(JSON.stringify(creds));
         } else {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'invalid_token' }));
@@ -59,6 +74,14 @@ function startExplorerStub() {
         lastExplorerApiRequest = { rawUrl: req.url, authorization: req.headers.authorization || null };
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ data: [], meta: { response: { 'total-results': 0, 'total-pages': 1 } } }));
+        return;
+      }
+
+      // Detail Pages API (a separate host in prod; pointed back at this stub in the test).
+      if (url.pathname.startsWith('/v1/')) {
+        lastDetailsApiRequest = { rawUrl: req.url, authorization: req.headers.authorization || null };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ title: 'Stub output', score: 1, cited_by_accounts_count: 0, cited_by_posts_count: 0 }));
         return;
       }
 
@@ -113,6 +136,11 @@ async function mcpPost(method, params, { token } = {}) {
   };
 }
 
+async function toolNames(token) {
+  const { data } = await mcpPost('tools/list', {}, { token });
+  return data.result.tools.map((t) => t.name);
+}
+
 describe('HTTP transport (OAuth resource server)', function () {
   this.timeout(15000);
 
@@ -126,6 +154,7 @@ describe('HTTP transport (OAuth resource server)', function () {
         PORT: String(PORT),
         HOST: '127.0.0.1',
         EXPLORER_BASE_URL: explorerOrigin,
+        DETAILS_API_BASE_URL: explorerOrigin,
         MCP_PUBLIC_URL: BASE_URL,
       },
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -160,7 +189,7 @@ describe('HTTP transport (OAuth resource server)', function () {
       assert.strictEqual(doc.resource, BASE_URL);
       // Must match the authorization server's host-only RFC 8414 issuer — RFC 8414 §3.3.
       assert.deepStrictEqual(doc.authorization_servers, [explorerOrigin]);
-      assert.ok(doc.scopes_supported.includes('explorer'));
+      assert.deepStrictEqual(doc.scopes_supported, ['mcp']);
     });
   });
 
@@ -175,20 +204,32 @@ describe('HTTP transport (OAuth resource server)', function () {
     it('401s a token the broker rejects', async function () {
       const { status } = await mcpPost('tools/list', {}, { token: 'bad-token' });
       assert.strictEqual(status, 401);
-      assert.ok(brokerHits['bad-token'] >= 1, 'broker should have been consulted for the bad token');
+      assert.ok(credsHits['bad-token'] >= 1, 'broker should have been consulted for the bad token');
     });
   });
 
-  describe('Tools', function () {
-    it('lists Explorer tools only (no Details Page tools on the HTTP transport)', async function () {
-      const { status, data } = await mcpPost('tools/list', {}, { token: GOOD });
-      assert.strictEqual(status, 200);
-      const names = data.result.tools.map((t) => t.name);
+  describe('Toolset reflects entitlements', function () {
+    it('exposes both toolsets to a user entitled to both products', async function () {
+      const names = await toolNames(GOOD);
       assert.ok(names.includes('explore_research_outputs'), 'should expose Explorer tools');
-      assert.ok(!names.includes('get_citation_counts'), 'should not expose Details Page tools');
+      assert.ok(names.includes('get_citation_counts'), 'should expose Detail Pages tools');
     });
 
-    it('brokers credentials and signs the Explorer call without leaking the bearer', async function () {
+    it('exposes only Explorer tools to an Explorer-only user', async function () {
+      const names = await toolNames(EXPLORER_ONLY);
+      assert.ok(names.includes('explore_research_outputs'), 'should expose Explorer tools');
+      assert.ok(!names.includes('get_citation_counts'), 'should not expose Detail Pages tools');
+    });
+
+    it('exposes only Detail Pages tools to a Detail-Pages-only user', async function () {
+      const names = await toolNames(DETAILS_ONLY);
+      assert.ok(names.includes('get_citation_counts'), 'should expose Detail Pages tools');
+      assert.ok(!names.includes('explore_research_outputs'), 'should not expose Explorer tools');
+    });
+  });
+
+  describe('Tool calls', function () {
+    it('signs the Explorer call with the brokered key without leaking the bearer', async function () {
       lastExplorerApiRequest = null;
 
       const { status, data } = await mcpPost('tools/call', {
@@ -197,22 +238,32 @@ describe('HTTP transport (OAuth resource server)', function () {
       }, { token: GOOD });
 
       assert.strictEqual(status, 200);
-      assert.ok(data.result, `expected a tool result, got ${JSON.stringify(data)}`);
       assert.ok(!data.result.isError, `tool call should succeed: ${JSON.stringify(data.result)}`);
-
-      // The Explorer API call was signed with the brokered key + an HMAC digest...
       assert.ok(lastExplorerApiRequest, 'Explorer API should have been called');
       assert.match(lastExplorerApiRequest.rawUrl, /key=brokered-key/);
       assert.match(lastExplorerApiRequest.rawUrl, /digest=[a-f0-9]+/);
-      // ...and the client's OAuth bearer was NOT forwarded to it (spec passthrough prohibition).
       assert.strictEqual(lastExplorerApiRequest.authorization, null);
     });
 
-    it('caches brokered credentials (one broker hit reused across requests)', async function () {
-      // GOOD is used only by the Tools describe-block requests. Each request both
-      // validates (authenticate) and resolves the tool's credentials, but the broker
-      // lookup is cached by token hash, so all of them share a single network hit.
-      assert.strictEqual(brokerHits[GOOD], 1, `expected a single broker network hit, saw ${brokerHits[GOOD]}`);
+    it('signs the Detail Pages call with the brokered key without leaking the bearer', async function () {
+      lastDetailsApiRequest = null;
+
+      const { status, data } = await mcpPost('tools/call', {
+        name: 'get_citation_counts',
+        arguments: { identifier: '10.1038/nature12373', identifier_type: 'doi' },
+      }, { token: DETAILS_ONLY });
+
+      assert.strictEqual(status, 200);
+      assert.ok(!data.result.isError, `tool call should succeed: ${JSON.stringify(data.result)}`);
+      assert.ok(lastDetailsApiRequest, 'Details API should have been called');
+      assert.match(lastDetailsApiRequest.rawUrl, /key=dp-only-key/);
+      assert.strictEqual(lastDetailsApiRequest.authorization, null);
+    });
+
+    it('caches the brokered credentials (one broker hit reused across requests)', async function () {
+      // GOOD made several requests above; each validates and builds its toolset, but the
+      // entitlement map is brokered once and cached by token hash.
+      assert.strictEqual(credsHits[GOOD], 1, `expected a single broker network hit, saw ${credsHits[GOOD]}`);
     });
   });
 

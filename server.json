@@ -6,7 +6,7 @@
     "url": "https://github.com/altmetric/altmetric-mcp",
     "source": "github"
   },
-  "version": "0.8.1",
+  "version": "1.0.0",
   "icons": [
     {
       "src": "https://raw.githubusercontent.com/altmetric/altmetric-mcp/main/icon.svg",
@@ -24,7 +24,7 @@
     {
       "registryType": "npm",
       "identifier": "altmetric-mcp",
-      "version": "0.8.1",
+      "version": "1.0.0",
       "transport": {
         "type": "stdio"
       },

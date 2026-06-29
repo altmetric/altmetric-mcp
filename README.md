@@ -62,6 +62,10 @@ Add to `.vscode/mcp.json` (VS Code 1.101 or later):
 
 Open the Command Palette, run **MCP: List Servers**, select **Altmetric**, and start it; sign in when prompted.
 
+### ChatGPT
+
+Open **Settings → Connectors → Advanced** and turn on **Developer mode**, then **Settings → Connectors → Add custom connector**, enter `https://mcp.altmetric.com/mcp`, and complete the OAuth sign-in. Requires a paid plan (Plus, Pro, Business, Enterprise, or Edu); custom connectors aren't available on the free tier. All Altmetric tools are read-only, so the read-only restriction on Plus/Pro plans doesn't limit them.
+
 ### Other MCP clients
 
 Any client that supports the **Streamable HTTP** transport with OAuth can connect. Point it at `https://mcp.altmetric.com/mcp`. On the first request the server returns `401` with a `WWW-Authenticate` header pointing at its discovery document (`/.well-known/oauth-protected-resource`), which the client uses to run the OAuth flow against Altmetric Explorer automatically.

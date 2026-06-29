@@ -151,6 +151,20 @@ app.get('/.well-known/oauth-protected-resource', (req, res) => {
   }));
 });
 
+// MCP Registry domain-ownership proof (HTTP verification). The registry verifies the
+// mcp.altmetric.com domain (the `com.altmetric.mcp` namespace) by fetching this path and
+// matching the Ed25519 public key. Unauthenticated; the proof line comes from the
+// MCP_REGISTRY_AUTH env var so the key can be rotated via config (the value is public).
+// See https://modelcontextprotocol.io/registry/authentication
+app.get('/.well-known/mcp-registry-auth', (req, res) => {
+  const proof = process.env.MCP_REGISTRY_AUTH;
+  if (!proof) {
+    res.status(404).end();
+    return;
+  }
+  res.type('text/plain').send(proof);
+});
+
 // Health check endpoint (unauthenticated)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', transport: 'http' });

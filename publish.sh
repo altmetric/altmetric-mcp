@@ -139,8 +139,8 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "🔐 Checking MCP Registry authentication..."
     if ! mcp-publisher whoami &> /dev/null; then
       echo "⚠️  Not authenticated with MCP Registry."
-      echo "Authenticating with GitHub..."
-      mcp-publisher login github
+      echo "Authenticating via domain (mcp.altmetric.com)..."
+      mcp-publisher login http --domain mcp.altmetric.com --private-key "$MCP_REGISTRY_KEY"
     fi
 
     echo "📤 Publishing to MCP Registry..."

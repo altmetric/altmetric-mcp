@@ -156,6 +156,7 @@ describe('HTTP transport (OAuth resource server)', function () {
         EXPLORER_BASE_URL: explorerOrigin,
         DETAILS_API_BASE_URL: explorerOrigin,
         MCP_PUBLIC_URL: BASE_URL,
+        MCP_REGISTRY_AUTH: 'v=MCPv1; k=ed25519; p=TESTKEY',
       },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -190,6 +191,13 @@ describe('HTTP transport (OAuth resource server)', function () {
       // Must match the authorization server's host-only RFC 8414 issuer — RFC 8414 §3.3.
       assert.deepStrictEqual(doc.authorization_servers, [explorerOrigin]);
       assert.deepStrictEqual(doc.scopes_supported, ['mcp']);
+    });
+
+    it('serves the MCP registry domain-ownership proof from MCP_REGISTRY_AUTH', async function () {
+      const res = await fetch(`${BASE_URL}/.well-known/mcp-registry-auth`);
+      assert.strictEqual(res.status, 200);
+      assert.match(res.headers.get('content-type'), /text\/plain/);
+      assert.strictEqual((await res.text()).trim(), 'v=MCPv1; k=ed25519; p=TESTKEY');
     });
   });
 

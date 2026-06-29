@@ -4,16 +4,86 @@ Model Context Protocol (MCP) server that enables AI agents to access Altmetric A
 
 Altmetric monitors where research is being discussed beyond traditional academic citations - from mainstream media coverage to policy citations, patent references, and social media engagement - providing a comprehensive view of real-world research impact.
 
-## Prerequisites
+There are two ways to connect:
 
-- **Node.js >= 20.6.0** - [Download from nodejs.org](https://nodejs.org/) (LTS recommended)
+- **Hosted server (recommended)** - point your AI client at `https://mcp.altmetric.com/mcp` and sign in with your Altmetric account. No API keys to copy or store, and you automatically get the tools for whatever you have access to (Explorer, Detail Pages, or both). Start here.
+- **Run locally** - run the server on your own machine with your own API keys, over stdio. For offline use or when you'd rather manage keys directly. See *Run locally with your own API keys* below.
+
+## Connect to the hosted server (recommended)
+
+The easiest way to use Altmetric in your AI client is the hosted server at `https://mcp.altmetric.com/mcp`. Point your client at that URL and sign in with your Altmetric account when prompted - the client runs a standard OAuth flow in your browser, so there are no API keys to copy or store. You get exactly the tools your account has access to.
+
+### Claude Desktop
+
+1. Open **Settings → Connectors** and click **Add custom connector**.
+2. Name it `Altmetric` and enter the URL `https://mcp.altmetric.com/mcp`.
+3. Click **Add**, then **Connect**, and sign in when the browser window opens.
+
+Verify by asking Claude: *"Use the Altmetric tools to look up the attention score for DOI 10.1038/nature12373"*
+
+### Claude Code
+
+```bash
+claude mcp add --transport http altmetric https://mcp.altmetric.com/mcp
+```
+
+Then run `/mcp` inside Claude Code, select **altmetric**, and authenticate - a browser window opens for sign-in.
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per project):
+
+```json
+{
+  "mcpServers": {
+    "Altmetric": {
+      "url": "https://mcp.altmetric.com/mcp"
+    }
+  }
+}
+```
+
+Cursor runs a browser sign-in the first time the server is used.
+
+### VS Code (GitHub Copilot)
+
+Add to `.vscode/mcp.json` (VS Code 1.101 or later):
+
+```json
+{
+  "servers": {
+    "Altmetric": {
+      "type": "http",
+      "url": "https://mcp.altmetric.com/mcp"
+    }
+  }
+}
+```
+
+Open the Command Palette, run **MCP: List Servers**, select **Altmetric**, and start it; sign in when prompted.
+
+### Other MCP clients
+
+Any client that supports the **Streamable HTTP** transport with OAuth can connect. Point it at `https://mcp.altmetric.com/mcp`. On the first request the server returns `401` with a `WWW-Authenticate` header pointing at its discovery document (`/.well-known/oauth-protected-resource`), which the client uses to run the OAuth flow against Altmetric Explorer automatically.
+
+### How sign-in works
+
+The hosted server is an OAuth 2.1 **resource server**. Your client obtains a bearer token from Altmetric Explorer (the authorization server) for the `mcp` scope. The server exchanges that token for your account's entitlements and calls the Altmetric APIs on your behalf - your bearer token is **never** forwarded to those APIs. The advertised toolset reflects your entitlements, so you only ever see the tools for the products you can use.
+
+## Run locally with your own API keys
+
+Prefer to run the server yourself - offline, or managing API keys directly? Run it over stdio with `npx`.
+
+### Prerequisites
+
+- **Node.js 20.6.0 or later** - an actively-supported [LTS release](https://nodejs.org/en/about/previous-releases) is recommended ([download](https://nodejs.org/))
 - **Altmetric API credentials** (at least one):
   - **Details Page API key** - Free tier or commercial access
   - **Explorer API key + secret** - Institutional access
 
 Don't have keys yet? [Request API access](https://www.altmetric.com/solutions/altmetric-api/)
 
-## Quick Install (Claude Desktop on macOS)
+### Quick install (Claude Desktop on macOS)
 
 Run the guided installer in Terminal - it checks Node.js, prompts for your API keys, and configures Claude Desktop automatically:
 
@@ -27,11 +97,11 @@ Or if you've cloned the repo:
 bash install.sh
 ```
 
-Prefer to set things up manually? See [Claude Desktop](#claude-desktop) below.
+Prefer to set things up manually? See the per-client instructions below.
 
-## Installation
+### Manual configuration
 
-Configure your MCP client to run the Altmetric MCP server using `npx`. Include only the API credentials you have access to.
+Configure your MCP client to run the server using `npx`. Include only the API credentials you have access to.
 
 ```json
 {
@@ -46,9 +116,8 @@ Configure your MCP client to run the Altmetric MCP server using `npx`. Include o
 }
 ```
 
-Below are specific instructions for popular AI tools and editors.
-
-### Claude Desktop
+<details>
+<summary><strong>Claude Desktop</strong></summary>
 
 1. Open the configuration file at:
    - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -83,6 +152,8 @@ Below are specific instructions for popular AI tools and editors.
 3. Save the file and **restart Claude Desktop** (Cmd+Q then reopen).
 
 4. Verify by asking Claude: *"Use the Altmetric tools to look up the attention score for DOI 10.1038/nature12373"*
+
+</details>
 
 <details>
 <summary><strong>Claude Code</strong></summary>
@@ -152,17 +223,17 @@ Add to `~/.cursor/mcp.json`:
 <details>
 <summary><strong>Other MCP clients</strong></summary>
 
-Any MCP-compatible client that supports stdio transport can use this server. Use the generic configuration at the top of this section, adapting it to your client's config format. The command is always `npx` with args `["-y", "altmetric-mcp"]` plus the environment variables for your API keys.
+Any MCP-compatible client that supports stdio transport can use this server. Use the generic configuration above, adapting it to your client's config format. The command is always `npx` with args `["-y", "altmetric-mcp"]` plus the environment variables for your API keys.
 
 </details>
 
-## Deploying safely
+### Deploying the local server safely
 
-This server runs as a child process of the MCP host (Claude Desktop, Claude Code, etc.). A few things are worth knowing before you wire it into a sensitive workflow.
+The local server runs as a child process of the MCP host (Claude Desktop, Claude Code, etc.). A few things are worth knowing before you wire it into a sensitive workflow.
 
 **What the server does**
 - Read-only proxy to two Altmetric HTTP APIs over outbound HTTPS. The one exception is an idempotent `POST` to the Explorer identifier_lists endpoint (create-or-find), used internally to scope an Explorer query to a supplied set of identifiers; it creates no user-visible state and is not destructive.
-- No inbound network surface in the default stdio mode; no destructive operations. (The opt-in [HTTP transport](#http-transport-oauth--experimental) adds an OAuth-gated inbound surface.)
+- No inbound network surface; no destructive operations.
 - Treats upstream text as untrusted: scans for prompt-injection markers, redacts suspicious matches in the LLM-facing summary, and surfaces raw values only via `structuredContent`.
 
 **What you should do**
@@ -178,60 +249,20 @@ This server runs as a child process of the MCP host (Claude Desktop, Claude Code
 - Filter values are validated client-side (date format, length, pagination ranges) before any upstream call.
 - Upstream error bodies are logged to stderr by SHA-256 prefix only, not verbatim.
 
-For vulnerability reports and supported versions see [SECURITY.md](SECURITY.md).
-
-## HTTP transport (OAuth), experimental
-
-Besides the default stdio entrypoint, the server can run as a long-lived HTTP service that
-authenticates callers with OAuth 2.1 instead of static API keys. This is intended for
-shared/remote deployments and is still experimental.
-
-In this mode the server is an OAuth **resource server**: clients present a bearer token issued
-by Altmetric Explorer (the authorization server) for the single `mcp` scope. The server
-exchanges that token at Explorer's aggregate credentials endpoint for the user's entitlement
-map (the API keys for the products they can use: Explorer, Detail Pages, or both), then calls
-the Altmetric APIs itself; the client's bearer is **never** forwarded to them. The advertised
-toolset reflects that map, exactly like the stdio transport gates tools by configured keys: a
-user sees the tools for the products they have and nothing more.
-
-Run it:
-
-```bash
-npm run start:http
-```
-
-Configuration (environment variables):
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | `3000` | Port to listen on |
-| `HOST` | `127.0.0.1` | Interface to bind |
-| `EXPLORER_BASE_URL` | `https://www.altmetric.com` | Explorer authorization server + API host (host-only; the `/explorer` prefix is baked in) |
-| `EXPLORER_ISSUER` | `EXPLORER_BASE_URL` | OAuth issuer advertised in the RFC 9728 metadata. Must exactly equal the authorization server's RFC 8414 `issuer`. Only set for non-standard hosts. |
-| `DETAILS_API_BASE_URL` | `https://api.altmetric.com` | Detail Pages API host. The per-user key is brokered from Explorer; the API calls go here. |
-| `MCP_PUBLIC_URL` | `http://HOST:PORT` | This server's public URL (used in discovery metadata + `WWW-Authenticate`) |
-
-No `ALTMETRIC_*` keys are used on the HTTP transport; credentials are brokered per request.
-
-Endpoints:
-
-- `POST /mcp`: MCP Streamable HTTP (bearer required). The transport is **stateless**: a fresh server/transport is created per request, so there are no sessions, any instance serves any request, and redeploys are invisible to clients. `GET`/`DELETE /mcp` return `405` (no server-initiated stream, no session to close).
-- `GET /.well-known/oauth-protected-resource`: RFC 9728 metadata pointing clients at Explorer
-- `GET /health`: health check
-
-Unauthenticated `/mcp` requests get `401` with a `WWW-Authenticate` header pointing at the
-metadata document, so MCP clients can discover Explorer and run the OAuth flow automatically.
+For vulnerability reports and supported versions see [SECURITY.md](https://github.com/altmetric/altmetric-mcp/blob/main/SECURITY.md).
 
 ## Troubleshooting
 
 | Problem | Solution |
 |---|---|
-| `command not found: node` | Node.js is not installed. [Download it here](https://nodejs.org/) (version 20.6.0 or later). |
-| Claude Desktop won't start after editing config | The JSON file has a syntax error. Check for missing commas, unmatched brackets, or trailing commas. Paste it into [jsonlint.com](https://jsonlint.com) to validate. |
-| "MCP server failed to start" | Run `npx -y altmetric-mcp` in Terminal to see the actual error. Usually a missing/invalid API key or Node.js version too old. |
+| Sign-in window doesn't open / "authentication required" (hosted) | Your client must support remote MCP over HTTP with OAuth. In Claude Code run `/mcp` and authenticate; in Claude Desktop use the connector's **Connect** button. Make sure browser launches aren't blocked. |
+| Signed in but some tools are missing (hosted) | You only see tools for the products your Altmetric account can access (Explorer, Detail Pages, or both). If you expect more, contact your Altmetric account admin. |
+| `command not found: node` (local) | Node.js is not installed. [Download it here](https://nodejs.org/) (version 20.6.0 or later). |
+| Claude Desktop won't start after editing config (local) | The JSON file has a syntax error. Check for missing commas, unmatched brackets, or trailing commas. Paste it into [jsonlint.com](https://jsonlint.com) to validate. |
+| "MCP server failed to start" (local) | Run `npx -y altmetric-mcp` in Terminal to see the actual error. Usually a missing/invalid API key or Node.js version too old. |
 | Tools appear but return 403 errors | You're using a free-tier key with a commercial-tier tool (`get_citation_details`). Use `get_citation_counts` or `search_citations` instead. |
-| First query is slow | Normal. `npx` downloads the package on first run. Subsequent uses are faster. |
-| Explorer tools fail | Explorer tools need **both** `ALTMETRIC_EXPLORER_API_KEY` and `ALTMETRIC_EXPLORER_API_SECRET`. Make sure both are set. |
+| First query is slow (local) | Normal. `npx` downloads the package on first run. Subsequent uses are faster. |
+| Explorer tools fail (local) | Explorer tools need **both** `ALTMETRIC_EXPLORER_API_KEY` and `ALTMETRIC_EXPLORER_API_SECRET`. Make sure both are set. |
 
 ## API Tiers
 

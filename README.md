@@ -15,7 +15,7 @@ The easiest way to use Altmetric in your AI client is the hosted server at `http
 
 ### Claude Desktop
 
-1. Open **Settings → Connectors** and click **Add custom connector**.
+1. Open **Settings → Customize → Connectors** and click **Add custom connector**.
 2. Name it `Altmetric` and enter the URL `https://mcp.altmetric.com/mcp`.
 3. Click **Add**, then **Connect**, and sign in when the browser window opens.
 

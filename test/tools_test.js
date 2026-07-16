@@ -40,9 +40,10 @@ describe('Conditional Tool Registration', function () {
   const EXPLORER_TOOLS = [
     'explore_research_outputs', 'explore_attention_summary', 'explore_mentions',
     'explore_demographics', 'explore_mention_sources', 'explore_journals',
+    'list_departments',
   ];
 
-  it('returns all 11 tools when both APIs configured', function () {
+  it('returns all 12 tools when both APIs configured', function () {
     const allTools = createTools({ details: detailsResolver, explorer: explorerResolver });
     assert.deepStrictEqual(Object.keys(allTools).sort(), [...DETAILS_TOOLS, ...EXPLORER_TOOLS].sort());
   });
@@ -436,5 +437,47 @@ describe('MCP Tools', function () {
       const url = new URL(fetchStub.firstCall.args[0]);
       assert.strictEqual(url.searchParams.get('include'), '');
     });
+  });
+});
+
+describe('list_departments (Explorer)', function () {
+  let stub;
+
+  beforeEach(function () {
+    stub = sinon.stub(global, 'fetch');
+  });
+
+  afterEach(function () {
+    stub.restore();
+  });
+
+  const departmentsPage = (departments, totalPages) => ({
+    ok: true,
+    text: async () => JSON.stringify({
+      meta: { response: { 'total-results': totalPages * 100, 'total-pages': totalPages } },
+      data: departments,
+    }),
+  });
+
+  it('requests the departments endpoint signed with key and digest', async function () {
+    stub.resolves(departmentsPage([{ id: 'inst:group:a', type: 'department', attributes: { name: 'Biology' } }], 1));
+
+    const result = await toolHandlers.list_departments({});
+    const url = new URL(stub.firstCall.args[0]);
+
+    assert.strictEqual(url.pathname, '/explorer/api/departments');
+    assert.ok(url.searchParams.get('key'), 'key should be present');
+    assert.ok(url.searchParams.get('digest'), 'digest should be present');
+    assert.strictEqual(result.structuredContent.data.length, 1);
+  });
+
+  it('fetches every page and returns the full department set', async function () {
+    stub.onFirstCall().resolves(departmentsPage([{ id: 'a' }, { id: 'b' }], 2));
+    stub.onSecondCall().resolves(departmentsPage([{ id: 'c' }], 2));
+
+    const result = await toolHandlers.list_departments({});
+
+    assert.strictEqual(stub.callCount, 2);
+    assert.deepStrictEqual(result.structuredContent.data.map(d => d.id), ['a', 'b', 'c']);
   });
 });

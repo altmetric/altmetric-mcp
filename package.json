@@ -1,6 +1,6 @@
 {
   "name": "altmetric-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for Altmetric APIs - track research attention across news, policy, social media, and more",
   "mcpName": "com.altmetric.mcp/altmetric-mcp",
   "type": "module",

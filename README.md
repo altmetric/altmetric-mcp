@@ -299,6 +299,7 @@ This server provides eleven tools across two APIs:
 | `explore_demographics` | Explorer | Institutional | Audience geographic and demographic data |
 | `explore_mention_sources` | Explorer | Institutional | Source/outlet analysis for mentions |
 | `explore_journals` | Explorer | Institutional | Journal metrics, rankings, and search |
+| `list_departments` | Explorer | Institutional | List your institution's departments and their IDs |
 
 All Explorer tools additionally accept `researcher_id` and `grant_id` filters (Dimensions IDs), and an `identifiers` parameter that scopes a query to a raw list of scholarly identifiers - the server builds the corresponding identifier list for you. Explorer responses also include sentiment data (`sentiment-analysis-totals` on research outputs, `sentiment-analysis` on X/Bluesky mentions).
 

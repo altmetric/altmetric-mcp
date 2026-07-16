@@ -128,3 +128,8 @@ Get aggregated mention data by journal — journal names, ISSNs, and mention cou
 - `type`: Filter by research output type
 - `timeframe`, `published_after`/`published_before`: Time filters
 - `identifiers` / `identifier_list_id`: Scope to a specific set of outputs
+
+### `list_departments`
+List the institutional departments configured in your Explorer instance — each with its `id` and `name`.
+
+The `id` is the value to pass to the `department_id` filter on the other Explorer tools (e.g. `explore_research_outputs`). Only available to institutions with a data integration; those without one get an empty list. Takes no arguments and fetches every page for you, returning the full department set.

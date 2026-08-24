@@ -4,6 +4,21 @@ import { enforceResultSizeLimit, MAX_RESULT_BYTES } from '../lib/output-limits.j
 const sizeOf = (r) => Buffer.byteLength(JSON.stringify(r), 'utf8');
 
 describe('enforceResultSizeLimit', function () {
+  it('keeps the digest in step with the data it trimmed', function () {
+    const data = Array.from({ length: 400 }, (_, i) => ({
+      attributes: { name: `source-${i}`, url: `https://example.com/${'x'.repeat(200)}/${i}` },
+    }));
+    const result = { content: [{ type: 'text', text: 'summary' }], structuredContent: { data } };
+
+    const out = enforceResultSizeLimit(result);
+    const kept = out.structuredContent.data.length;
+
+    assert.ok(kept < 400, 'expected the data array to be trimmed');
+    assert.ok(sizeOf(out) <= MAX_RESULT_BYTES, 'trimmed result should fit the budget');
+    assert.ok(out.content[0].text.includes(`source-${kept - 1}`), 'digest should cover the last kept item');
+    assert.ok(!out.content[0].text.includes(`source-${kept}`), 'digest should not name a dropped item');
+  });
+
   it('returns a small result unchanged, with no truncation note', function () {
     const result = { content: [{ type: 'text', text: 'ok' }], structuredContent: { data: [1, 2, 3] } };
     const out = enforceResultSizeLimit(result);

@@ -98,6 +98,21 @@ describe('MCP Tools', function () {
         'subject parameter should not be passed directly to API');
     });
 
+    it('reports posts actually returned when get_citation_details is filtered', async function () {
+      fetchStub.resolves({
+        ok: true,
+        text: async () => JSON.stringify({
+          title: 'A paper',
+          counts: { total: { posts_count: 122 } },
+          posts: { news: [{ url: 'a' }, { url: 'b' }] },
+        }),
+      });
+
+      const result = await toolHandlers.get_citation_details({ identifier: '10.1038/nature12373', include_sources: 'news' });
+
+      assert.match(result.content[0].text, /Posts returned: 2 \(including: news\), out of 122 in total/);
+    });
+
     it('sends the namespaced filter names explore_mention_sources reads', async function () {
       fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
 

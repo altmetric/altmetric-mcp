@@ -47,7 +47,7 @@ let serverStderr = '';
 // --- stub Explorer ---------------------------------------------------------
 let explorer;
 let explorerOrigin;
-const credsHits = {};
+const credsHits = new Map();
 let lastExplorerApiRequest = null;
 let lastDetailsApiRequest = null;
 
@@ -58,8 +58,8 @@ function startExplorerStub() {
 
       if (url.pathname === '/explorer/oauth/credentials/mcp') {
         const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-        credsHits[token] = (credsHits[token] || 0) + 1;
-        const creds = TOKEN_CREDENTIALS[token];
+        credsHits.set(token, (credsHits.get(token) || 0) + 1);
+        const creds = Object.hasOwn(TOKEN_CREDENTIALS, token) ? TOKEN_CREDENTIALS[token] : null;
         if (creds) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(creds));
@@ -212,7 +212,7 @@ describe('HTTP transport (OAuth resource server)', function () {
     it('401s a token the broker rejects', async function () {
       const { status } = await mcpPost('tools/list', {}, { token: 'bad-token' });
       assert.strictEqual(status, 401);
-      assert.ok(credsHits['bad-token'] >= 1, 'broker should have been consulted for the bad token');
+      assert.ok((credsHits.get('bad-token') || 0) >= 1, 'broker should have been consulted for the bad token');
     });
   });
 
@@ -271,7 +271,7 @@ describe('HTTP transport (OAuth resource server)', function () {
     it('caches the brokered credentials (one broker hit reused across requests)', async function () {
       // GOOD made several requests above; each validates and builds its toolset, but the
       // entitlement map is brokered once and cached by token hash.
-      assert.strictEqual(credsHits[GOOD], 1, `expected a single broker network hit, saw ${credsHits[GOOD]}`);
+      assert.strictEqual(credsHits.get(GOOD), 1, `expected a single broker network hit, saw ${credsHits.get(GOOD)}`);
     });
   });
 

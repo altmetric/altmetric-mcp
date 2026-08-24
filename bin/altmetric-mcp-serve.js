@@ -9,7 +9,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { createTools } from '../lib/tools.js';
-import { assertArgsWithinLimits } from '../lib/args-limits.js';
+import { assertArgsWithinLimits, assertArgsAreKnown } from '../lib/args-limits.js';
 import { enforceResultSizeLimit } from '../lib/output-limits.js';
 import { createCredentialsBroker } from '../lib/credentials/broker.js';
 import { bearerAuth } from '../lib/middleware/bearer.js';
@@ -110,6 +110,7 @@ function createServer(tools) {
 
     try {
       assertArgsWithinLimits(args);
+      assertArgsAreKnown(tool.definition.inputSchema, args);
       // Trim oversized results to the client cap, matching the stdio entry (index.js).
       return enforceResultSizeLimit(await tool.handler(args));
     } catch (error) {

@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { assertArgsWithinLimits, MAX_ARGS_BYTES, MAX_ARG_STRING_BYTES } from '../lib/args-limits.js';
+import { assertArgsAreKnown, assertArgsWithinLimits, MAX_ARGS_BYTES, MAX_ARG_STRING_BYTES } from '../lib/args-limits.js';
 
 describe('assertArgsWithinLimits', function () {
   it('accepts undefined or null args', function () {
@@ -61,5 +61,24 @@ describe('assertArgsWithinLimits', function () {
   it('exposes sensible default limits', function () {
     assert.strictEqual(MAX_ARGS_BYTES, 8 * 1024 * 1024);
     assert.strictEqual(MAX_ARG_STRING_BYTES, 64 * 1024);
+  });
+});
+
+describe('assertArgsAreKnown', function () {
+  const schema = { type: 'object', properties: { identifier: {}, identifier_type: {} } };
+
+  it('accepts arguments the tool declares', function () {
+    assert.doesNotThrow(() => assertArgsAreKnown(schema, { identifier: '10.1/x' }));
+  });
+
+  it('names the unknown argument and what the tool does accept', function () {
+    assert.throws(
+      () => assertArgsAreKnown(schema, { identifier: '10.1/x', source_type: 'news' }),
+      /Unknown argument: source_type\. This tool accepts: identifier, identifier_type\./
+    );
+  });
+
+  it('ignores tools that declare no properties', function () {
+    assert.doesNotThrow(() => assertArgsAreKnown({ type: 'object' }, { anything: 1 }));
   });
 });

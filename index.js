@@ -8,7 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync } from 'node:fs';
 import { createTools } from './lib/tools.js';
-import { assertArgsWithinLimits } from './lib/args-limits.js';
+import { assertArgsWithinLimits, assertArgsAreKnown } from './lib/args-limits.js';
 import { enforceResultSizeLimit } from './lib/output-limits.js';
 
 // Advertise the package version (single source of truth: package.json) to MCP clients.
@@ -87,6 +87,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     assertArgsWithinLimits(args);
+    assertArgsAreKnown(tool.definition.inputSchema, args);
     const result = await tool.handler(args);
     // Keep the result under the MCP client's payload cap so the client never
     // drops an oversized response whole (see lib/output-limits.js).

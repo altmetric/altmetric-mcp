@@ -64,6 +64,24 @@ describe('Conditional Tool Registration', function () {
   });
 });
 
+describe('Output schemas', function () {
+  const tools = createTools({ details: detailsResolver, explorer: explorerResolver });
+
+  it('declares an output schema for every tool, so clients can surface structuredContent', function () {
+    const missing = Object.values(tools).filter((t) => !t.definition.outputSchema).map((t) => t.definition.name);
+    assert.deepStrictEqual(missing, []);
+  });
+
+  it('leaves the payload open, so a new upstream field is not a schema violation', function () {
+    for (const { definition } of Object.values(tools)) {
+      assert.strictEqual(definition.outputSchema.type, 'object');
+      assert.notStrictEqual(definition.outputSchema.additionalProperties, false);
+      assert.strictEqual(definition.outputSchema.required, undefined,
+        `${definition.name} must not require fields the size guard may strip`);
+    }
+  });
+});
+
 describe('MCP Tools', function () {
   beforeEach(function () {
     fetchStub = sinon.stub(global, 'fetch');

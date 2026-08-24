@@ -9,7 +9,7 @@ Retrieve attention metrics and mention counts across various platforms for resea
 
 **Parameters:**
 - `identifier` (required): The research output identifier (e.g., "10.1038/nature12373")
-- `identifier_type` (optional): Type of identifier - "doi", "pmid", "arxiv", "id", "ads", "urn", "uri", or "isbn" (default: "doi")
+- `identifier_type` (optional): Type of identifier - "doi", "pmid", "arxiv", "id", "ads", "handle", "nct_id", "repec", "urn", "uri", "isbn", "ssrn", or "dimensions_publication_id" (default: "doi")
 
 **Example:**
 ```json
@@ -25,15 +25,19 @@ Retrieve detailed mention information including full text of posts, author detai
 **Parameters:**
 - `identifier` (required): The research output identifier
 - `identifier_type` (optional): "doi" or "id" (default: "doi")
-- `citation_type` (optional): Filter by type - "twitter", "news", "blog", "policy", "patent", etc.
-- `page` (optional): Page number for pagination (default: 1)
+- `include_sources` (optional): Comma-separated sources to keep, e.g. `"news,blogs"`. Names must match exactly; an unrecognised name returns no posts rather than an error
+- `exclude_sources` (optional): Comma-separated sources to drop, e.g. `"twitter,facebook"`
+- `post_types` (optional): Only `"original_tweets"`, which excludes retweets
+- `include_sections` (optional): Comma-separated response sections to keep - `counts`, `citation`, `altmetric_score`, `demographics`, `posts`, `images`
+
+This endpoint returns everything at once and has no pagination; use `include_sources` and `include_sections` to keep responses small.
 
 **Example:**
 ```json
 {
   "identifier": "10.1038/nature12373",
   "identifier_type": "doi",
-  "citation_type": "news"
+  "include_sources": "news,blogs"
 }
 ```
 
@@ -112,7 +116,6 @@ Get information about the sources of mentions for research outputs. Analyze whic
 **Key Parameters:**
 - `q`: Search query
 - `mentioned_after`/`mentioned_before`: Date range filters
-- `source_type`: Filter by source type (news, twitter, policy, etc.)
 - `countries`: Filter by country codes
 - `page_number`, `page_size`: Pagination controls
 - `include_related`: Embed related objects (author profiles, journals, full mentioned research-output records). Defaults to `false` to keep responses small; setting it `true` is **heavy** and can exceed client size limits. Leave it off unless you specifically need that related data.

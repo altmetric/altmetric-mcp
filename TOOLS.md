@@ -46,7 +46,8 @@ Search aggregated attention data across all tracked research outputs for a speci
 
 **Parameters:**
 - `timeframe` (required): "1d", "2d", "3d", "4d", "5d", "6d", "1w", "1m", "3m", "6m", "1y", or "at" (all-time)
-- `citation_type` (optional): Filter by citation source type
+- `citation_type` (optional): Filter by the type of the research output - "article", "book", "chapter", "clinical_trial_study_record", "dataset", "generic", "news". This is the output's own type, not where it was mentioned
+- `cited_in` (optional): Only return outputs mentioned in these sources, comma-separated (e.g. `"news,policy"`)
 - `nlmid` (optional): Filter by journal NLM ID
 - `issns` (optional): Filter by journal ISSN(s), comma-separated
 - `subject` (optional): Filter by Scopus subject area
@@ -57,7 +58,7 @@ Search aggregated attention data across all tracked research outputs for a speci
 ```json
 {
   "timeframe": "1w",
-  "citation_type": "news",
+  "cited_in": "news",
   "num_results": 50
 }
 ```

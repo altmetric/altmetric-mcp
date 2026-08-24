@@ -98,6 +98,16 @@ describe('MCP Tools', function () {
         'subject parameter should not be passed directly to API');
     });
 
+    it('sends cited_in for mention-source filtering, separate from the output-type filter', async function () {
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ query: {}, results: [] }) });
+
+      await toolHandlers.search_citations({ timeframe: '1w', cited_in: 'news,policy', citation_type: 'article' });
+
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.strictEqual(url.searchParams.get('cited_in'), 'news,policy');
+      assert.strictEqual(url.searchParams.get('citation_type'), 'article');
+    });
+
     it('sends order parameter without filter[] wrapper (Explorer API)', async function () {
       const mockResponse = { meta: { total: 0 }, data: [] };
 

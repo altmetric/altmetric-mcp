@@ -97,6 +97,7 @@ Retrieve individual mentions of research outputs with detailed information about
 
 **Key Parameters:**
 - `q`: Search query
+- `mention_types`: Only return mentions of these types, e.g. `["msm"]` for news, `["tweet","bluesky"]` for X and Bluesky. The API's names: news is `msm`, Reddit is `rdt`, Facebook is `fbwall`, YouTube is `video`
 - `mentioned_after`/`mentioned_before`: Date range filters
 - `countries`: Filter by country codes
 - `page_number`, `page_size`: Pagination controls
@@ -116,6 +117,7 @@ Get information about the sources of mentions for research outputs. Analyze whic
 
 **Key Parameters:**
 - `q`: Search query
+- `mention_types`: Only return sources of these types, e.g. `["msm"]` for news outlets. Patents, Wikipedia, F1000, Q&A, video and Pinterest have no source profiles and cannot be filtered here; use `explore_mentions` for those
 - `mentioned_after`/`mentioned_before`: Date range filters
 - `countries`: Filter by country codes
 - `page_number`, `page_size`: Pagination controls

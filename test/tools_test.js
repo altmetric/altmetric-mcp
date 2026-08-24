@@ -98,6 +98,33 @@ describe('MCP Tools', function () {
         'subject parameter should not be passed directly to API');
     });
 
+    it('sends mention_types as a post-type filter on explore_mentions', async function () {
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
+
+      await toolHandlers.explore_mentions({ q: 'test', mention_types: ['msm', 'bluesky'] });
+
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.deepStrictEqual(url.searchParams.getAll('filter[mention_types][]'), ['msm', 'bluesky']);
+    });
+
+    it('translates mention_types to profile types on explore_mention_sources', async function () {
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
+
+      await toolHandlers.explore_mention_sources({ q: 'test', mention_types: ['tweet', 'bluesky'] });
+
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.deepStrictEqual(url.searchParams.getAll('filter[mention_sources_types][]'), ['type:tw', 'type:bsk']);
+      assert.strictEqual(url.searchParams.has('filter[mention_types][]'), false);
+    });
+
+    it('rejects mention types that have no source profiles rather than matching nothing', async function () {
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ q: 'test', mention_types: ['wikipedia'] }),
+        /cannot filter by "wikipedia"/
+      );
+      assert.strictEqual(fetchStub.called, false);
+    });
+
     it('sends cited_in for mention-source filtering, separate from the output-type filter', async function () {
       fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ query: {}, results: [] }) });
 

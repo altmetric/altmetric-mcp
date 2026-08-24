@@ -98,6 +98,33 @@ describe('MCP Tools', function () {
         'subject parameter should not be passed directly to API');
     });
 
+    it('sends the namespaced filter names explore_mention_sources reads', async function () {
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
+
+      await toolHandlers.explore_mention_sources({
+        q: 'test', mentioned_after: '2026-01-01', mentioned_before: '2026-06-01', countries: ['US'],
+      });
+
+      const url = new URL(fetchStub.firstCall.args[0]);
+      assert.strictEqual(url.searchParams.get('filter[mention_sources_mentioned_after]'), '2026-01-01');
+      assert.strictEqual(url.searchParams.get('filter[mention_sources_mentioned_before]'), '2026-06-01');
+      assert.deepStrictEqual(url.searchParams.getAll('filter[mention_sources_countries][]'), ['US']);
+      assert.strictEqual(url.searchParams.has('filter[mentioned_after]'), false);
+      assert.strictEqual(url.searchParams.has('filter[countries][]'), false);
+    });
+
+    it('rejects mention-source date ranges the endpoint cannot serve', async function () {
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ q: 'test', mentioned_before: '2026-06-01' }),
+        /needs mentioned_after/
+      );
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ q: 'test', mentioned_after: '2020-01-01', mentioned_before: '2026-06-01' }),
+        /at most one year/
+      );
+      assert.strictEqual(fetchStub.called, false);
+    });
+
     it('sends mention_types as a post-type filter on explore_mentions', async function () {
       fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
 

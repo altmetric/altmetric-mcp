@@ -4,6 +4,34 @@ import { enforceResultSizeLimit, MAX_RESULT_BYTES } from '../lib/output-limits.j
 const sizeOf = (r) => Buffer.byteLength(JSON.stringify(r), 'utf8');
 
 describe('enforceResultSizeLimit', function () {
+  it('keeps every source represented when a citation-details payload is too large', function () {
+    const post = (i) => ({ url: `https://example.com/${i}`, summary: 'x'.repeat(400), author: { name: `author-${i}` } });
+    const result = {
+      content: [{ type: 'text', text: 'summary' }],
+      structuredContent: {
+        counts: {
+          news: { posts_count: 300, unique_users_count: 300, unique_users: Array.from({ length: 300 }, (_, i) => `u${i}`) },
+          bluesky: { posts_count: 900, unique_users_count: 900, unique_users: Array.from({ length: 900 }, (_, i) => `b${i}`) },
+        },
+        posts: {
+          news: Array.from({ length: 300 }, (_, i) => post(i)),
+          bluesky: Array.from({ length: 900 }, (_, i) => post(i)),
+        },
+      },
+    };
+
+    const out = enforceResultSizeLimit(result);
+    const sc = out.structuredContent;
+
+    assert.strictEqual(sc.error, undefined, 'a trimmable payload should not fall through to the error');
+    assert.ok(sizeOf(out) <= MAX_RESULT_BYTES);
+    assert.strictEqual(sc.counts.news.unique_users, undefined, 'unique_users lists should be shed');
+    assert.strictEqual(sc.counts.bluesky.unique_users_count, 900, 'the count beside them should survive');
+    assert.ok(sc.posts.news.length > 0 && sc.posts.bluesky.length > 0, 'both sources should still be represented');
+    assert.strictEqual(sc.truncated.posts.bluesky.available, 900);
+    assert.match(out.content[0].text, /bluesky \(\d+ of 900\)/);
+  });
+
   it('keeps the digest in step with the data it trimmed', function () {
     const data = Array.from({ length: 400 }, (_, i) => ({
       attributes: { name: `source-${i}`, url: `https://example.com/${'x'.repeat(200)}/${i}` },

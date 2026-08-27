@@ -80,6 +80,18 @@ describe('Output schemas', function () {
         `${definition.name} must not require fields the size guard may strip`);
     }
   });
+
+  // A client validates structuredContent against this schema and fails the call
+  // on a mismatch, so a type here would have to be right for every endpoint and
+  // every payload the size guard can produce.
+  it('constrains no payload key, since the shapes differ by endpoint', function () {
+    for (const { definition } of Object.values(tools)) {
+      for (const [key, subschema] of Object.entries(definition.outputSchema.properties ?? {})) {
+        assert.strictEqual(subschema.type, undefined,
+          `${definition.name}.${key} must not declare a type`);
+      }
+    }
+  });
 });
 
 describe('MCP Tools', function () {

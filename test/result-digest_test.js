@@ -67,6 +67,28 @@ describe('renderDigest', function () {
     assert.match(digest, /twitter \(1\)/);
   });
 
+  it('keeps each item on one line, whatever the upstream text contains', function () {
+    const digest = renderDigest({
+      data: [{ attributes: { name: 'line one\nline two', url: 'https://example.com/a' } }],
+    });
+
+    const itemLines = digest.split('\n').filter((line) => line.includes('example.com'));
+    assert.strictEqual(itemLines.length, 1);
+    assert.match(digest, /line one line two/);
+  });
+
+  it('only marks posts as elided when more exist than it names', function () {
+    const withUnnamed = renderDigest({
+      posts: { news: [{ author: { name: 'A' } }, { author: {} }, { author: { name: 'C' } }] },
+    });
+    assert.doesNotMatch(withUnnamed, /…/, 'three posts, all within the cap, so nothing was elided');
+
+    const withMany = renderDigest({
+      posts: { news: Array.from({ length: 9 }, (_, i) => ({ author: { name: `A${i}` } })) },
+    });
+    assert.match(withMany, /…/);
+  });
+
   it('returns nothing for payloads with no items to index', function () {
     assert.strictEqual(renderDigest({ meta: { total: 0 }, data: [] }), '');
     assert.strictEqual(renderDigest({ error: 'result_too_large' }), '');

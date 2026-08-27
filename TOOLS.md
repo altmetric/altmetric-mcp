@@ -117,8 +117,8 @@ Get information about the sources of mentions for research outputs. Analyze whic
 
 **Key Parameters:**
 - `q`: Search query
-- `mention_types`: Only return sources of these types, e.g. `["msm"]` for news outlets. Patents, Wikipedia, F1000, Q&A, video and Pinterest have no source profiles and cannot be filtered here; use `explore_mentions` for those
-- `mentioned_after`/`mentioned_before`: Date range filters
+- `mention_types`: Only return sources of these types, e.g. `["msm"]` for news outlets. Patents, peer reviews, Wikipedia, F1000, Q&A, video and Pinterest have no source profiles and cannot be filtered here; use `explore_mentions` for those
+- `mentioned_after`/`mentioned_before`: Date range filters. This endpoint serves at most a year at a time: `mentioned_before` requires `mentioned_after`, and `mentioned_after` on its own runs to today, so it must itself fall within the last year
 - `countries`: Filter by country codes
 - `page_number`, `page_size`: Pagination controls
 - `include_related`: Embed related objects (author profiles, journals, full mentioned research-output records). Defaults to `false` to keep responses small; setting it `true` is **heavy** and can exceed client size limits. Leave it off unless you specifically need that related data.

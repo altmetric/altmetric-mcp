@@ -214,6 +214,21 @@ describe('MCP Tools', function () {
       assert.strictEqual(fetchStub.called, false);
     });
 
+    it('checks the arguments before posting an identifier list upstream', async function () {
+      const identifiers = ['10.1038/nature12373'];
+
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ identifiers, mention_types: ['wikipedia'] }),
+        /cannot filter by "wikipedia"/
+      );
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ identifiers, mentioned_before: '2026-06-01' }),
+        /needs mentioned_after/
+      );
+
+      assert.strictEqual(fetchStub.called, false, 'the identifiers should not have been sent');
+    });
+
     it('sends cited_in for mention-source filtering, separate from the output-type filter', async function () {
       fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ query: {}, results: [] }) });
 

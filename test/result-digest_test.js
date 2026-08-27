@@ -27,6 +27,18 @@ describe('renderDigest', function () {
     assert.match(digest, /2026-06-09 \| bluesky \| someone\.bsky\.social/);
   });
 
+  it('resolves a name when the included block is keyed by id rather than a list', function () {
+    const digest = renderDigest({
+      data: [{
+        attributes: { 'post-type': 'bluesky' },
+        relationships: { author: { data: { id: 'bsk:did:plc:abc' } } },
+      }],
+      included: { 'bsk:did:plc:abc': { type: 'profile', attributes: { name: 'someone.bsky.social' } } },
+    });
+
+    assert.match(digest, /bluesky \| someone\.bsky\.social/);
+  });
+
   it('falls back to the author id when nothing was included', function () {
     const digest = renderDigest({
       data: [{ attributes: { 'post-type': 'bluesky' }, relationships: { author: { data: { id: 'bsk:did:plc:abc' } } } }],

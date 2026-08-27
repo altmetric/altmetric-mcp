@@ -20,7 +20,7 @@ Retrieve attention metrics and mention counts across various platforms for resea
 ```
 
 ### `get_citation_details` (Commercial Tier)
-Retrieve detailed mention information including full text of posts, author details, and complete metadata for how research is being discussed online. The returned `citation` block includes `authors_details`, pairing each author name with its Dimensions Researcher ID where available.
+Retrieve detailed mention information including full text of posts, author details, and complete metadata for how research is being discussed online. Posts from X are the exception: see [X mentions](#x-mentions) below. The returned `citation` block includes `authors_details`, pairing each author name with its Dimensions Researcher ID where available.
 
 **Parameters:**
 - `identifier` (required): The research output identifier
@@ -93,7 +93,7 @@ Get aggregated attention metrics for research outputs matching your query, broke
 - `type`: Filter by research output type
 
 ### `explore_mentions`
-Retrieve individual mentions of research outputs with detailed information about each mention including author, URL, timestamp, and platform. Scored mentions also carry a `sentiment-analysis` attribute (one sentiment per research output the mention references; computed for X and Bluesky only, absent if your organization has AI features restricted).
+Retrieve individual mentions of research outputs with detailed information about each mention including author, URL, timestamp, and platform. Mentions from X carry no account name: see [X mentions](#x-mentions) below. Scored mentions also carry a `sentiment-analysis` attribute (one sentiment per research output the mention references; computed for X and Bluesky only, absent if your organization has AI features restricted).
 
 **Key Parameters:**
 - `q`: Search query
@@ -113,7 +113,7 @@ Get demographic information about the audiences engaging with research outputs. 
 - `type`, `journal_id`, `author_id`: Filter by research attributes
 
 ### `explore_mention_sources`
-Get information about the sources of mentions for research outputs. Analyze which platforms, channels, and outlets are mentioning research with source credibility and reach data.
+Get information about the sources of mentions for research outputs. Analyze which platforms, channels, and outlets are mentioning research with source credibility and reach data. X accounts come back unnamed: see [X mentions](#x-mentions) below.
 
 **Key Parameters:**
 - `q`: Search query
@@ -139,3 +139,15 @@ Get aggregated mention data by journal — journal names, ISSNs, and mention cou
 List the institutional departments configured in your Explorer instance — each with its `id` and `name`.
 
 The `id` is the value to pass to the `department_id` filter on the other Explorer tools (e.g. `explore_research_outputs`). Only available to institutions with a data integration; those without one get an empty list. Takes no arguments and fetches every page for you, returning the full department set.
+
+## X mentions
+
+Under Altmetric's licence with X, mentions from X expose only numeric identifiers. There is no account handle, display name or post text, at any tier and on either API:
+
+- `get_citation_details` returns `tweet_id` and `author.tweeter_id`.
+- `explore_mentions` returns the post id as `external-id` and the account id under `author`.
+- `explore_mention_sources` returns X accounts with an id and no name.
+
+Every other source is named. News outlets, blogs, Bluesky, Reddit, podcasts, policy sources and the rest carry an author name, and usually a summary of the mention. So a question like "which accounts are talking about this paper" is answerable for those sources and not for X, where only counts, ids and aggregate demographics are available.
+
+A numeric post id and account id can be turned back into a URL (`https://twitter.com/{account_id}/status/{post_id}`), and hydrated into a full post through X's own API, which requires a paid X plan. See <https://docs.altmetric.com/details-page-api/x-data/>.

@@ -77,6 +77,8 @@ All six Explorer tools share a common set of filters. In addition to the per-too
 ### `explore_research_outputs`
 Search and filter research outputs within your institutional Altmetric Explorer instance. Supports filtering by author, department, journal, publication date, research type, and more. Each result includes `sentiment-analysis-totals`, a breakdown of its mentions across seven sentiment categories (computed for X and Bluesky mentions; absent if your organization has AI features restricted).
 
+**The `altmetric-score` on these results is rounded up to a whole number,** which is how Altmetric displays a score everywhere: on a details page, on a badge and in the Explorer. A research output scoring 0.25 and one scoring 0.5 both report `1`. The Details Page API tools return the same score unrounded, so a mean of one set is not the same figure as a mean of the other. Either is defensible; say which you used, and round up if the numbers have to agree with what a customer sees elsewhere in Altmetric.
+
 **Key Parameters:**
 - `q`: Search query for title, author, or journal
 - `scope`: "all" or "institution"

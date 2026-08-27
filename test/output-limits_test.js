@@ -30,6 +30,11 @@ describe('enforceResultSizeLimit', function () {
     assert.ok(sc.posts.news.length > 0 && sc.posts.bluesky.length > 0, 'both sources should still be represented');
     assert.strictEqual(sc.truncated.posts.bluesky.available, 900);
     assert.match(out.content[0].text, /bluesky \(\d+ of 900\)/);
+
+    // The digest the search measured is the digest being returned, so the
+    // reported per-source counts match the posts actually present.
+    const [, reported] = out.content[0].text.match(/bluesky \((\d+) of 900\)/);
+    assert.strictEqual(Number(reported), sc.posts.bluesky.length);
   });
 
   it('keeps the digest in step with the data it trimmed', function () {

@@ -159,6 +159,8 @@ describe('MCP Tools', function () {
     });
 
     it('rejects mention-source date ranges the endpoint cannot serve', async function () {
+      const iso = (offsetDays) => new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+
       await assert.rejects(
         () => toolHandlers.explore_mention_sources({ q: 'test', mentioned_before: '2026-06-01' }),
         /needs mentioned_after/
@@ -167,7 +169,22 @@ describe('MCP Tools', function () {
         () => toolHandlers.explore_mention_sources({ q: 'test', mentioned_after: '2020-01-01', mentioned_before: '2026-06-01' }),
         /at most one year/
       );
+      // An open-ended start date runs to today, so it counts against the same limit.
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ q: 'test', mentioned_after: iso(-400) }),
+        /on its own runs to today/
+      );
+      await assert.rejects(
+        () => toolHandlers.explore_mention_sources({ q: 'test', mentioned_after: '2026-06-01', mentioned_before: '2026-01-01' }),
+        /mentioned_before to fall after/
+      );
       assert.strictEqual(fetchStub.called, false);
+
+      // A year measured as a calendar year, and a start date inside it, both pass.
+      fetchStub.resolves({ ok: true, text: async () => JSON.stringify({ meta: {}, data: [] }) });
+      await toolHandlers.explore_mention_sources({ q: 'test', mentioned_after: '2026-01-01', mentioned_before: '2027-01-01' });
+      await toolHandlers.explore_mention_sources({ q: 'test', mentioned_after: iso(-30) });
+      assert.strictEqual(fetchStub.callCount, 2);
     });
 
     it('sends mention_types as a post-type filter on explore_mentions', async function () {

@@ -32,7 +32,7 @@ const EXPLORER_BASE_URL = process.env.EXPLORER_BASE_URL || 'https://www.altmetri
 // metadata at that apex. Configurable via EXPLORER_ISSUER for non-standard hosts.
 const EXPLORER_ISSUER = (process.env.EXPLORER_ISSUER || EXPLORER_BASE_URL).replace(/\/$/, '');
 
-// The Detail Pages API is a separate host from Explorer (which hosts the broker + the
+// The Details Page API is a separate host from Explorer (which hosts the broker + the
 // Explorer API). Its per-user key is brokered from Explorer, but the API calls go here.
 const DETAILS_API_BASE_URL = process.env.DETAILS_API_BASE_URL || 'https://api.altmetric.com';
 
@@ -244,7 +244,7 @@ const httpServer = app.listen(PORT, HOST, (error) => {
   console.log(`Altmetric MCP HTTP Server running at http://${HOST}:${PORT}/mcp`);
   console.log('Transport: Streamable HTTP (stateless, OAuth-only)');
   console.log(`Explorer (broker + API): ${EXPLORER_BASE_URL}`);
-  console.log(`Detail Pages API: ${DETAILS_API_BASE_URL}`);
+  console.log(`Details Page API: ${DETAILS_API_BASE_URL}`);
   console.log(`Authorization server issuer (advertised): ${EXPLORER_ISSUER}`);
   console.log('');
   console.log('Available endpoints:');

@@ -6,7 +6,7 @@ Altmetric monitors where research is being discussed beyond traditional academic
 
 There are two ways to connect:
 
-- **Hosted server (recommended)** - point your AI client at `https://mcp.altmetric.com/mcp` and sign in with your Altmetric account. No API keys to copy or store, and you automatically get the tools for whatever you have access to (Explorer, Detail Pages, or both). Start here.
+- **Hosted server (recommended)** - point your AI client at `https://mcp.altmetric.com/mcp` and sign in with your Altmetric account. No API keys to copy or store, and you automatically get the tools for whatever you have access to (Explorer, Details Page, or both). Start here.
 - **Run locally** - run the server on your own machine with your own API keys, over stdio. For offline use or when you'd rather manage keys directly. See *Run locally with your own API keys* below.
 
 ## Connect to the hosted server (recommended)
@@ -260,7 +260,7 @@ For vulnerability reports and supported versions see [SECURITY.md](https://githu
 | Problem | Solution |
 |---|---|
 | Sign-in window doesn't open / "authentication required" (hosted) | Your client must support remote MCP over HTTP with OAuth. In Claude Code run `/mcp` and authenticate; in Claude Desktop use the connector's **Connect** button. Make sure browser launches aren't blocked. |
-| Signed in but some tools are missing (hosted) | You only see tools for the products your Altmetric account can access (Explorer, Detail Pages, or both). If you expect more, contact your Altmetric account admin. |
+| Signed in but some tools are missing (hosted) | You only see tools for the products your Altmetric account can access (Explorer, Details Page, or both). If you expect more, contact your Altmetric account admin. |
 | `command not found: node` (local) | Node.js is not installed. [Download it here](https://nodejs.org/) (version 20.6.0 or later). |
 | Claude Desktop won't start after editing config (local) | The JSON file has a syntax error. Check for missing commas, unmatched brackets, or trailing commas. Paste it into [jsonlint.com](https://jsonlint.com) to validate. |
 | "MCP server failed to start" (local) | Run `npx -y altmetric-mcp` in Terminal to see the actual error. Usually a missing/invalid API key or Node.js version too old. |

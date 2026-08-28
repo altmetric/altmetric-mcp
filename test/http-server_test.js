@@ -7,9 +7,9 @@ import { setTimeout as sleep } from 'timers/promises';
  * Integration tests for the HTTP transport entry (bin/altmetric-mcp-serve.js).
  *
  * Spawns the real server against a stub Explorer (aggregate credentials broker + Explorer
- * API + Detail Pages API) and drives it over HTTP. Verifies: RFC 9728 discovery, 401 +
+ * API + Details Page API) and drives it over HTTP. Verifies: RFC 9728 discovery, 401 +
  * WWW-Authenticate for unauthenticated / rejected callers, that the advertised toolset
- * reflects the caller's entitlements (Explorer-only, Detail-Pages-only, both), the signed
+ * reflects the caller's entitlements (Explorer-only, Details-Page-only, both), the signed
  * API calls, the spec token-passthrough prohibition (the client bearer never reaches the
  * Altmetric APIs), broker-credential caching, and the stateless transport contract.
  */
@@ -77,7 +77,7 @@ function startExplorerStub() {
         return;
       }
 
-      // Detail Pages API (a separate host in prod; pointed back at this stub in the test).
+      // Details Page API (a separate host in prod; pointed back at this stub in the test).
       if (url.pathname.startsWith('/v1/')) {
         lastDetailsApiRequest = { rawUrl: req.url, authorization: req.headers.authorization || null };
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -220,18 +220,18 @@ describe('HTTP transport (OAuth resource server)', function () {
     it('exposes both toolsets to a user entitled to both products', async function () {
       const names = await toolNames(GOOD);
       assert.ok(names.includes('explore_research_outputs'), 'should expose Explorer tools');
-      assert.ok(names.includes('get_citation_counts'), 'should expose Detail Pages tools');
+      assert.ok(names.includes('get_citation_counts'), 'should expose Details Page tools');
     });
 
     it('exposes only Explorer tools to an Explorer-only user', async function () {
       const names = await toolNames(EXPLORER_ONLY);
       assert.ok(names.includes('explore_research_outputs'), 'should expose Explorer tools');
-      assert.ok(!names.includes('get_citation_counts'), 'should not expose Detail Pages tools');
+      assert.ok(!names.includes('get_citation_counts'), 'should not expose Details Page tools');
     });
 
-    it('exposes only Detail Pages tools to a Detail-Pages-only user', async function () {
+    it('exposes only Details Page tools to a Details-Page-only user', async function () {
       const names = await toolNames(DETAILS_ONLY);
-      assert.ok(names.includes('get_citation_counts'), 'should expose Detail Pages tools');
+      assert.ok(names.includes('get_citation_counts'), 'should expose Details Page tools');
       assert.ok(!names.includes('explore_research_outputs'), 'should not expose Explorer tools');
     });
   });
@@ -253,7 +253,7 @@ describe('HTTP transport (OAuth resource server)', function () {
       assert.strictEqual(lastExplorerApiRequest.authorization, null);
     });
 
-    it('signs the Detail Pages call with the brokered key without leaking the bearer', async function () {
+    it('signs the Details Page call with the brokered key without leaking the bearer', async function () {
       lastDetailsApiRequest = null;
 
       const { status, data } = await mcpPost('tools/call', {

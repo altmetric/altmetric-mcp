@@ -32,13 +32,13 @@ describe('Identifier Validation', function () {
       );
     });
 
-    it('includes identifier in error message', function () {
-      try {
-        validateIdentifier('invalid-id', 'id');
-        assert.fail('Should have thrown an error');
-      } catch (error) {
-        assert.match(error.message, /invalid-id/);
-      }
+    it('names the constraint without echoing the value that failed it', function () {
+      // The message reaches stderr, which MCP hosts capture into transcripts, so it must
+      // not repeat what the caller sent. See lib/log-redact.js.
+      assert.throws(
+        () => validateIdentifier('invalid-id', 'id'),
+        (error) => !error.message.includes('invalid-id') && /Must be numeric/.test(error.message)
+      );
     });
   });
 
@@ -86,13 +86,11 @@ describe('Identifier Validation', function () {
       assert.throws(() => validateIdentifier('invalid-urn', 'urn'), /Invalid URN format/);
     });
 
-    it('includes identifier in error messages from libraries', function () {
-      try {
-        validateIdentifier('invalid-doi-12345', 'doi');
-        assert.fail('Should have thrown an error');
-      } catch (error) {
-        assert.match(error.message, /invalid-doi-12345/);
-      }
+    it('does not echo the value on the library-backed path either', function () {
+      assert.throws(
+        () => validateIdentifier('invalid-doi-12345', 'doi'),
+        (error) => !error.message.includes('invalid-doi-12345')
+      );
     });
   });
 

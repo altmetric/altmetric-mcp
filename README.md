@@ -315,7 +315,7 @@ If you attempt to use `get_citation_details` with a free API key, you'll receive
 
 ## Tools
 
-This server provides eleven tools across two APIs:
+This server provides twelve tools across two APIs:
 
 | Tool | API | Tier | Description |
 |---|---|---|---|

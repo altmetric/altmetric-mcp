@@ -35,6 +35,12 @@ describe('describeError', () => {
     assert.match(describeError('plain string failure'), /type=unknown/);
   });
 
+  it('does not throw on a value that cannot be coerced to a string', () => {
+    // describeError only runs inside a catch, so throwing here would replace the handled
+    // failure with an unhandled one.
+    assert.match(describeError(Object.create(null)), /type=unknown/);
+  });
+
   it('caps a long message rather than writing it whole', () => {
     const line = describeError(new Error('x'.repeat(1000)));
 

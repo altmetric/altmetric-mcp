@@ -9,6 +9,16 @@
   "version": "1.2.2",
   "icons": [
     {
+      "src": "https://raw.githubusercontent.com/altmetric/altmetric-mcp/main/icon-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    },
+    {
+      "src": "https://raw.githubusercontent.com/altmetric/altmetric-mcp/main/icon-1024.png",
+      "mimeType": "image/png",
+      "sizes": ["1024x1024"]
+    },
+    {
       "src": "https://raw.githubusercontent.com/altmetric/altmetric-mcp/main/icon.svg",
       "mimeType": "image/svg+xml",
       "sizes": ["any"]

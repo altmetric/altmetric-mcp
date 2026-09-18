@@ -14,6 +14,7 @@ import { enforceResultSizeLimit } from '../lib/output-limits.js';
 import { createCredentialsBroker } from '../lib/credentials/broker.js';
 import { bearerAuth } from '../lib/middleware/bearer.js';
 import { protectedResourceMetadata } from '../lib/http/well-known.js';
+import { describeError } from '../lib/log-redact.js';
 
 // Advertise the package version (single source of truth: package.json) to MCP clients.
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
@@ -114,7 +115,7 @@ function createServer(tools) {
       // Trim oversized results to the client cap, matching the stdio entry (index.js).
       return enforceResultSizeLimit(await tool.handler(args));
     } catch (error) {
-      console.error(`Tool ${name} error:`, error);
+      console.error(`Tool ${name} error: ${describeError(error)}`);
 
       return {
         content: [
@@ -190,7 +191,7 @@ app.post('/mcp', authenticate, async (req, res) => {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
-    console.error('Error handling MCP request:', error);
+    console.error(`Error handling MCP request: ${describeError(error)}`);
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
@@ -225,7 +226,7 @@ app.delete('/mcp', methodNotAllowed);
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || err.statusCode || 500;
-  console.error('Request error:', err.message);
+  console.error(`Request error: ${describeError(err)}`);
   if (!res.headersSent) {
     res.status(status).json({
       jsonrpc: '2.0',

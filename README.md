@@ -99,7 +99,7 @@ What those APIs return includes attention collected from third-party platforms u
 agreements with them, and one of those agreements changes what comes back. Under Altmetric's licence
 with X (formerly Twitter), mentions from X carry numeric identifiers only: no account handle,
 display name or post text, at any tier and on either API. Counts, ids and aggregate demographics are
-available; named accounts are not. See [X mentions](TOOLS.md#x-mentions) and
+available; named accounts are not. See [X mentions](https://docs.altmetric.com/mcp/tools/#x-mentions) and
 [X data in Altmetric's APIs](https://docs.altmetric.com/details-page-api/x-data/).
 
 Every other source - news outlets, blogs, Bluesky, Reddit, podcasts, policy documents, patents -

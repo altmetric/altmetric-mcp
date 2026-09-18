@@ -74,6 +74,21 @@ Any client that supports the **Streamable HTTP** transport with OAuth can connec
 
 The hosted server is an OAuth 2.1 **resource server**. Your client obtains a bearer token from Altmetric Explorer (the authorization server) for the `mcp` scope. The server exchanges that token for your account's entitlements and calls the Altmetric APIs on your behalf - your bearer token is **never** forwarded to those APIs. The advertised toolset reflects your entitlements, so you only ever see the tools for the products you can use.
 
+## Example prompts
+
+Once connected, ask in plain language - your client picks the tool. Each of these exercises a
+different one:
+
+| Prompt | Tool it uses | Needs |
+|---|---|---|
+| *"What's the Altmetric attention score for DOI 10.1038/nature12373, and how much of it came from news versus policy?"* | `get_citation_counts` | Details Page, free tier |
+| *"Which research outputs were picked up by policy documents in the last month?"* | `search_citations` | Details Page, free tier |
+| *"Show my institution's 2025 research outputs that got news coverage, ranked by attention."* | `explore_research_outputs` | Explorer, institutional |
+| *"Which countries is the audience for our cancer research in, over the past year?"* | `explore_demographics` | Explorer, institutional |
+
+You only see the tools your account is entitled to, so the Explorer prompts need institutional
+access. The full toolset is in [Tools](#tools) below.
+
 ## Run locally with your own API keys
 
 Prefer to run the server yourself - offline, or managing API keys directly? Run it over stdio with `npx`.

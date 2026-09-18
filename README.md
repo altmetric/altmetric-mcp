@@ -89,6 +89,22 @@ different one:
 You only see the tools your account is entitled to, so the Explorer prompts need institutional
 access. The full toolset is in [Tools](#tools) below.
 
+## Data sources and licensing
+
+Every tool calls Altmetric's own APIs - the Details Page API and the Explorer API, both first-party
+Altmetric (Digital Science) services. The server proxies no third-party API and holds no third-party
+data of its own.
+
+What those APIs return includes attention collected from third-party platforms under Altmetric's own
+agreements with them, and one of those agreements changes what comes back. Under Altmetric's licence
+with X (formerly Twitter), mentions from X carry numeric identifiers only: no account handle,
+display name or post text, at any tier and on either API. Counts, ids and aggregate demographics are
+available; named accounts are not. See [X mentions](TOOLS.md#x-mentions) and
+[X data in Altmetric's APIs](https://docs.altmetric.com/details-page-api/x-data/).
+
+Every other source - news outlets, blogs, Bluesky, Reddit, podcasts, policy documents, patents -
+comes back named.
+
 ## Run locally with your own API keys
 
 Prefer to run the server yourself - offline, or managing API keys directly? Run it over stdio with `npx`.

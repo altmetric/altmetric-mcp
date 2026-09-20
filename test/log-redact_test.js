@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { describe, it } from 'mocha';
-import { describeError } from '../lib/log-redact.js';
+import { describeError, describeErrorForClient } from '../lib/log-redact.js';
 
 describe('describeError', () => {
   it('keeps the API key out of a message that quotes the request URL', () => {
@@ -77,5 +77,11 @@ describe('describeError', () => {
     const line = describeError(new Error('x'.repeat(1000)));
 
     assert.ok(line.length < 500, `length ${line.length}`);
+  });
+
+  it('redacts the text handed back to the client, not just the log line', () => {
+    const error = new TypeError('GET https://api.altmetric.com/v1/x?key=live-secret-key failed');
+
+    assert.ok(!describeErrorForClient(error).includes('live-secret-key'));
   });
 });

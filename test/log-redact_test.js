@@ -41,6 +41,12 @@ describe('describeError', () => {
     assert.match(describeError(Object.create(null)), /type=unknown/);
   });
 
+  it('redacts a credential named with a prefix, such as api_key', () => {
+    const line = describeError(new Error('upstream said api_key=live-secret-key is invalid'));
+
+    assert.ok(!line.includes('live-secret-key'), line);
+  });
+
   it('caps a long message rather than writing it whole', () => {
     const line = describeError(new Error('x'.repeat(1000)));
 

@@ -73,9 +73,9 @@ Tests live under `/test/` (one `*_test.js` file per `lib/` module, plus `integra
 
 **index.js** - Thin server bootstrap: reads credentials from the environment, calls `createTools(...)`, registers the MCP `ListTools`/`CallTool` handlers, and enforces inbound argument limits (`assertArgsWithinLimits`) before dispatching. It contains no tool definitions or HTTP logic itself.
 
-**lib/tools.js** - The eleven tool definitions and handlers, gated by which credentials are configured:
+**lib/tools.js** - The twelve tool definitions and handlers, gated by which credentials are configured:
 - **Details Page API tools**: `get_citation_counts`, `get_citation_details`, `search_citations`, `get_batch_attention_data`, `translate_identifiers`
-- **Explorer API tools**: `explore_research_outputs`, `explore_attention_summary`, `explore_mentions`, `explore_demographics`, `explore_mention_sources`, `explore_journals`
+- **Explorer API tools**: `explore_research_outputs`, `explore_attention_summary`, `explore_mentions`, `explore_demographics`, `explore_mention_sources`, `explore_journals`, `list_departments`
 - Shared Explorer helpers: `SHARED_FILTER_KEYS` + `buildFilters()` (all six Explorer tools route through these), and `resolveIdentifierList()` (turns a raw `identifiers` array into an `identifier_list_id` via an internal POST - see below).
 
 **lib/api-client.js** - HTTP helpers and authentication:

@@ -34,7 +34,7 @@ describe('Identifier Validation', function () {
 
     it('names the constraint without echoing the value that failed it', function () {
       // The message reaches stderr, which MCP hosts capture into transcripts, so it must
-      // not repeat what the caller sent. See lib/log-redact.js.
+      // not repeat what the caller sent. See lib/log.js.
       assert.throws(
         () => validateIdentifier('invalid-id', 'id'),
         (error) => !error.message.includes('invalid-id') && /Must be numeric/.test(error.message)

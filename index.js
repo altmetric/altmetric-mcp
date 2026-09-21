@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { createTools } from './lib/tools.js';
 import { assertArgsWithinLimits, assertArgsAreKnown } from './lib/args-limits.js';
 import { enforceResultSizeLimit } from './lib/output-limits.js';
-import { describeError, describeErrorForClient } from './lib/log-redact.js';
+import { logError, logFatal, describeErrorForClient } from './lib/log.js';
 
 // Advertise the package version (single source of truth: package.json) to MCP clients.
 const { version } = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
@@ -94,8 +94,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // drops an oversized response whole (see lib/output-limits.js).
     return enforceResultSizeLimit(result);
   } catch (error) {
-    // Log full error for debugging
-    console.error(`Tool ${name} error: ${describeError(error)}`);
+    logError(`Tool ${name} error`, error);
 
     return {
       content: [
@@ -118,6 +117,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  logFatal('Fatal error:', error);
   process.exit(1);
 });

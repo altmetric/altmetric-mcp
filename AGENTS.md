@@ -85,7 +85,13 @@ Tests live under `/test/` (one `*_test.js` file per `lib/` module, plus `integra
 - `generateExplorerDigest()` - HMAC-SHA1 digest from sorted filters
 - `generateIdentifierListDigest()` - HMAC-SHA1 digest for the identifier_lists endpoint (different convention - see below)
 
-**Other lib/ modules**: `filter-validators.js` (runtime filter validation), `validators.js` (identifier-format validation), `args-limits.js` (inbound arg caps), `output-guard.js` (prompt-injection scrubbing of upstream text), `output-limits.js` (outbound result-size backstop - see below).
+**Other lib/ modules**: `filter-validators.js` (runtime filter validation), `validators.js` (identifier-format validation), `args-limits.js` (inbound arg caps), `output-guard.js` (prompt-injection scrubbing of upstream text), `output-limits.js` (outbound result-size backstop - see below), `log.js` (every stderr write - see below).
+
+**lib/log.js** is the only place this server writes an error to stderr, because stderr is captured into MCP host transcripts (stdio) and into the hosted server's operational logs, so a line written there outlives the request. Use it rather than `console.error`; the only exceptions are the static startup banners in `index.js`.
+- `logError(label, error)` - a handled failure. Runs the error through `describeError()`, which redacts query strings and credential-shaped tokens, caps the message, and quotes it with `JSON.stringify` so a message carrying a quote or newline cannot forge a second record. The digest is over the **redacted** message, so it correlates repeat failures without confirming what redaction removed.
+- `logFatal(label, error)` - a boot failure only (transport setup, binding a socket). Deliberately keeps the whole error including the stack: no caller data can be in scope yet. Named so the exception reads as a decision rather than a missed call site.
+- `logUpstreamError(label, status, body)` - a non-2xx from an upstream API; digests the body rather than printing it.
+- `describeErrorForClient(error)` - the same redaction for the other sink, the text handed back in a tool result. Both sinks land in the same transcript in stdio mode, so both are redacted.
 
 ### Authentication
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert';
 import { describe, it } from 'mocha';
-import { describeError, describeErrorForClient } from '../lib/log-redact.js';
+import { describeError, describeErrorForClient, logError, logFatal } from '../lib/log.js';
 
 describe('describeError', () => {
   it('keeps the API key out of a message that quotes the request URL', () => {
@@ -83,5 +83,40 @@ describe('describeError', () => {
     const error = new TypeError('GET https://api.altmetric.com/v1/x?key=live-secret-key failed');
 
     assert.ok(!describeErrorForClient(error).includes('live-secret-key'));
+  });
+});
+
+describe('logError', () => {
+  function capture(run) {
+    const seen = [];
+    const real = console.error;
+    console.error = (...args) => seen.push(args);
+    try {
+      run();
+    } finally {
+      console.error = real;
+    }
+    return seen;
+  }
+
+  it('writes one line per failure even when the label carries a newline', () => {
+    const [[line]] = capture(() => logError('label with\na newline', new Error('boom')));
+
+    assert.strictEqual(line.split('\n').length, 1, line);
+  });
+
+  it('redacts through describeError rather than printing the error', () => {
+    const error = new Error('GET /v1/x?key=live-secret-key failed');
+    const [[line]] = capture(() => logError('Tool x error', error));
+
+    assert.ok(!line.includes('live-secret-key'), line);
+    assert.strictEqual(line, `Tool x error: ${describeError(error)}`);
+  });
+
+  it('logFatal keeps the whole error, which is the point of the boot-path exception', () => {
+    const error = new Error('bind failed');
+    const [args] = capture(() => logFatal('Fatal error:', error));
+
+    assert.strictEqual(args[1], error);
   });
 });

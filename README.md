@@ -9,6 +9,15 @@ There are two ways to connect:
 - **Hosted server (recommended)** - point your AI client at `https://mcp.altmetric.com/mcp` and sign in with your Altmetric account. No API keys to copy or store, and you automatically get the tools for whatever you have access to (Explorer, Details Page, or both). Start here.
 - **Run locally** - run the server on your own machine with your own API keys, over stdio. For offline use or when you'd rather manage keys directly. See *Run locally with your own API keys* below.
 
+## What access you need
+
+The server works with access to either one of Altmetric's APIs on its own - the **Details Page API** or the **Explorer API** - and gives you the tools for whichever you have. To get the full potential of Altmetric, having **both is strongly recommended**, because they answer different questions:
+
+- **Details Page API** - the attention for a specific research output, looked up by identifier (DOI, PubMed ID, etc.), and a search of recent attention by timeframe.
+- **Explorer API** - searching, filtering and aggregating research outputs, mentions, audience demographics and journals across the whole Altmetric database, and across your own institution's outputs.
+
+With only one, you get only that API's tools. See [Tools](#tools) for which tools come with each API, and [request API access](https://www.altmetric.com/solutions/altmetric-api/) if you're missing one.
+
 ## Connect to the hosted server (recommended)
 
 The easiest way to use Altmetric in your AI client is the hosted server at `https://mcp.altmetric.com/mcp`. Point your client at that URL and sign in with your Altmetric account when prompted - the client runs a standard OAuth flow in your browser, so there are no API keys to copy or store. You get exactly the tools your account has access to.
@@ -112,7 +121,7 @@ Prefer to run the server yourself - offline, or managing API keys directly? Run 
 ### Prerequisites
 
 - **Node.js 20.6.0 or later** - an actively-supported [LTS release](https://nodejs.org/en/about/previous-releases) is recommended ([download](https://nodejs.org/))
-- **Altmetric API credentials** (at least one):
+- **Altmetric API credentials** (at least one, both recommended - see *What access you need* above):
   - **Details Page API key** - Free tier or commercial access
   - **Explorer API key + secret** - Institutional access
 

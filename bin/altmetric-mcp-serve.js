@@ -145,9 +145,12 @@ const authenticate = bearerAuth({
 const app = createMcpExpressApp({ host: HOST });
 
 // RFC 9728 protected resource metadata (unauthenticated: it is the discovery entry point).
-app.get('/.well-known/oauth-protected-resource', (req, res) => {
+// `resource` is the MCP endpoint itself, path included, because clients compare it with the
+// URL they connected to. Also served at the RFC 9728 §3.1 path-inserted location for clients
+// that derive the metadata URL from the resource path rather than WWW-Authenticate.
+app.get(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'], (req, res) => {
   res.json(protectedResourceMetadata({
-    resource: MCP_PUBLIC_URL,
+    resource: `${MCP_PUBLIC_URL}/mcp`,
     authorizationServers: [EXPLORER_ISSUER],
     scopes: ['mcp'],
   }));

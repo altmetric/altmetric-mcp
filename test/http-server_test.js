@@ -187,10 +187,18 @@ describe('HTTP transport (OAuth resource server)', function () {
       const res = await fetch(`${BASE_URL}/.well-known/oauth-protected-resource`);
       assert.strictEqual(res.status, 200);
       const doc = await res.json();
-      assert.strictEqual(doc.resource, BASE_URL);
+      assert.strictEqual(doc.resource, `${BASE_URL}/mcp`);
       // Must match the authorization server's host-only RFC 8414 issuer — RFC 8414 §3.3.
       assert.deepStrictEqual(doc.authorization_servers, [explorerOrigin]);
       assert.deepStrictEqual(doc.scopes_supported, ['mcp']);
+    });
+
+    it('serves the same metadata at the path-inserted location', async function () {
+      const [root, inserted] = await Promise.all([
+        fetch(`${BASE_URL}/.well-known/oauth-protected-resource`).then((r) => r.json()),
+        fetch(`${BASE_URL}/.well-known/oauth-protected-resource/mcp`).then((r) => r.json()),
+      ]);
+      assert.deepStrictEqual(inserted, root);
     });
 
     it('serves the MCP registry domain-ownership proof from MCP_REGISTRY_AUTH', async function () {
